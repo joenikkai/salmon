@@ -49,12 +49,10 @@ We don't bundle cloud backup because we can't run that infrastructure for free. 
 ## The stack
 
 - `Sveltekit` for the Website.
-- `React Wails` for the Desktop app.
+- `Wails Svelte` for the Desktop app.
 
 I previously thought on adding a mobile version of the app. Handling product records on a phones keyboard was a hustle for me.
 But if salmon's users want a mobile version later. 
-
-> I could have used svelte for the `wails app` but the sveltes caveats will eventually break the app.
 
 
 ## the scope

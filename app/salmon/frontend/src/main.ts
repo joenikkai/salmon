@@ -1,4 +1,4 @@
-/** Copyright (C) <year>  <name of author>
+/** Copyright (C) 2026 Joseph Wangai Mwaniki
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -13,12 +13,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
+import { mount } from 'svelte'
+import App from './App.svelte'
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+mount(App, { target: document.getElementById('app')! })
