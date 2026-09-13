@@ -1,2 +1,3 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<h1>Salmon</h1>
+<img src="https://upload.wikimedia.org/wikipedia/commons/3/39/Salmo_salar.jpg" alt="A salmon from Wikipedia">
+<a href="/downloads">download latest salmon release</a>
