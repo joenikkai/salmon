@@ -1,0 +1,24 @@
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential pkg-config git curl ca-certificates xz-utils \
+      libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev \
+      file desktop-file-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG GO_VERSION=1.25.0
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+      | tar -C /usr/local -xz
+ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
+
+ARG NODE_VERSION=20.18.1
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+      | tar -C /usr/local --strip-components=1 -xJ
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+# Wails Taskfiles sometimes shell out to `npm`; route it to pnpm.
+RUN printf '#!/bin/sh\nexec pnpm "$@"\n' > /usr/local/bin/npm && chmod +x /usr/local/bin/npm
+
+ARG WAILS3_VERSION=latest
+RUN go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS3_VERSION}

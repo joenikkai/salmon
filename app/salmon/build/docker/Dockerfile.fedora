@@ -1,0 +1,22 @@
+FROM fedora:41
+
+RUN dnf install -y --setopt=install_weak_deps=False \
+      gcc gcc-c++ make pkgconf-pkg-config git curl which xz \
+      gtk4-devel webkitgtk6.0-devel openssl-devel \
+      rpm-build desktop-file-utils \
+    && dnf clean all
+
+ARG GO_VERSION=1.25.0
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+      | tar -C /usr/local -xz
+ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
+
+ARG NODE_VERSION=20.18.1
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+      | tar -C /usr/local --strip-components=1 -xJ
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+RUN printf '#!/bin/sh\nexec pnpm "$@"\n' > /usr/local/bin/npm && chmod +x /usr/local/bin/npm
+
+ARG WAILS3_VERSION=latest
+RUN go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS3_VERSION}
