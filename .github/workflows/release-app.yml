@@ -5,6 +5,13 @@ on:
     tags:
       - 'app-v*'
 
+- name: Verify Wails CLI
+  shell: bash
+  run: |
+    which -a wails  || echo "no wails v2 on PATH"
+    which -a wails3 || echo "no wails3 on PATH"
+    wails3 --version || true
+    wails  --version || true      
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
 
