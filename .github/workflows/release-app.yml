@@ -138,7 +138,7 @@ jobs:
       - name: Build builder image (${{ matrix.distro }})
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: app/salmon
           file: app/salmon/docker/Dockerfile.${{ matrix.distro }}
           load: true
           tags: salmon-builder:${{ matrix.distro }}
