@@ -133,6 +133,11 @@ jobs:
       - uses: actions/checkout@v4
         with: { submodules: recursive }
 
+      - name: Verify dockerfiles
+        run: |
+          ls -la app/salmon/docker
+          head -n 20 app/salmon/docker/Dockerfile.${{ matrix.distro }}
+          
       - uses: docker/setup-buildx-action@v3
 
       - name: Build builder image (${{ matrix.distro }})
