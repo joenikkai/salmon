@@ -46,7 +46,7 @@ jobs:
             build_cmd: 'wails3 task darwin:package:universal'
             artifact_path: 'app/salmon/bin/*.app'
 
-          # --- Android (APK / AAB) ---
+          # --- Android (AAB) ---
           - name: 'salmon'
             platform: 'android'
             os: 'ubuntu-latest'
@@ -71,6 +71,38 @@ jobs:
         with:
           submodules: recursive
 
+      # ---------------------------------------------------------------
+      # PREFLIGHT: fail fast if the Wails build/ directory isn't tracked.
+      # This is the exact failure that produced the "stat .../Taskfile.yml:
+      # no such file or directory" errors. Committing app/salmon/build/
+      # is a prerequisite for this workflow to work at all.
+      # ---------------------------------------------------------------
+      - name: Verify Wails build directory is present
+        shell: bash
+        run: |
+          set -e
+          missing=0
+          for f in \
+            app/salmon/Taskfile.yml \
+            app/salmon/build/Taskfile.yml \
+            app/salmon/build/linux/Taskfile.yml \
+            app/salmon/build/windows/Taskfile.yml \
+            app/salmon/build/darwin/Taskfile.yml \
+            app/salmon/build/android/Taskfile.yml \
+            app/salmon/build/ios/Taskfile.yml
+          do
+            if [ ! -f "$f" ]; then
+              echo "::error::MISSING $f — is app/salmon/build/ committed to git?"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "--- Repo layout under app/salmon (first 3 levels) ---"
+            find app/salmon -maxdepth 3 -type f 2>/dev/null | sort || true
+            exit 1
+          fi
+          echo "All required Wails Taskfiles are present."
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -84,22 +116,36 @@ jobs:
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
-      # --- Platform-Specific Dependencies ---
-
-      - name: Install Linux dependencies (GTK4 + WebKitGTK 6.0)
+      # --- Linux deps (GTK4 + WebKitGTK 6.0) ---
+      - name: Install Linux dependencies
         if: runner.os == 'Linux' && (matrix.build.label == 'linux-amd64-deb' || matrix.build.label == 'linux-amd64-appimage')
+        shell: bash
         run: |
+          echo "--- Runner distro ---"
+          cat /etc/os-release
+          echo "--- Installing deps ---"
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev \
+            build-essential \
+            pkg-config
+          echo "--- Verifying pkg-config ---"
+          echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-<unset>}"
+          pkg-config --exists gtk4          && echo "gtk4: OK ($(pkg-config --modversion gtk4))"          || { echo "::error::gtk4.pc not found after install"; find / -name 'gtk4.pc' 2>/dev/null; exit 1; }
+          pkg-config --exists webkitgtk-6.0 && echo "webkitgtk-6.0: OK ($(pkg-config --modversion webkitgtk-6.0))" || { echo "::error::webkitgtk-6.0.pc not found after install"; find / -name 'webkitgtk-6.0.pc' 2>/dev/null; exit 1; }
 
+      # --- Windows NSIS ---
       - name: Install NSIS (Windows)
         if: runner.os == 'Windows' && matrix.build.label == 'windows-amd64'
         shell: pwsh
         run: |
           choco install nsis -y
-          # Add-Content is used instead of Out-File to avoid injecting a UTF-8 BOM into GITHUB_PATH
+          # Add-Content avoids the UTF-8 BOM that Out-File -Encoding utf8 injects
+          # into GITHUB_PATH and that silently breaks PATH registration.
           Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files (x86)\NSIS"
 
+      # --- Android SDK + NDK ---
       - name: Setup Android SDK + NDK
         if: matrix.build.label == 'android'
         uses: maxim-lobanov/setup-android-tools@v1
@@ -114,14 +160,14 @@ jobs:
         if: matrix.build.label == 'android'
         shell: bash
         run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> $GITHUB_ENV
-          echo "JAVA_HOME=$JAVA_HOME_21_X64" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT"                              >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264"        >> $GITHUB_ENV
+          echo "JAVA_HOME=$JAVA_HOME_21_X64"                                 >> $GITHUB_ENV
 
-      - name: Verify Wails Doctor
+      - name: Wails doctor (diagnostic)
         run: wails3 doctor || true
+        shell: bash
 
-      # --- Build Step ---
       - name: Build ${{ matrix.build.label }}
         working-directory: app/salmon
         run: ${{ matrix.build.build_cmd }}
@@ -129,10 +175,9 @@ jobs:
 
       - name: Debug build output
         if: always()
-        run: ls -la app/salmon/bin || true
         shell: bash
+        run: ls -la app/salmon/bin || true
 
-      # --- Upload Artifacts ---
       - name: Upload ${{ matrix.build.label }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
