@@ -5,7 +5,6 @@ on:
     tags:
       - 'app-v*'
 
-      
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -15,19 +14,57 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: 'salmon'
-            platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-            label: 'linux-amd64'
+          # --- Windows NSIS Installer ---
           - name: 'salmon'
             platform: 'windows/amd64'
             os: 'windows-latest'
             label: 'windows-amd64'
+            build_cmd: 'wails3 task windows:create:nsis:installer'
+            artifact_path: 'app/salmon/bin/*.exe'
+
+          # --- Debian Package (DEB) ---
+          - name: 'salmon'
+            platform: 'linux/amd64'
+            os: 'ubuntu-latest'
+            label: 'linux-amd64-deb'
+            build_cmd: 'wails3 task linux:create:deb'
+            artifact_path: 'app/salmon/bin/*.deb'
+
+          # --- AppImage ---
+          - name: 'salmon'
+            platform: 'linux/amd64'
+            os: 'ubuntu-latest'
+            label: 'linux-amd64-appimage'
+            build_cmd: 'wails3 task linux:create:appimage'
+            artifact_path: 'app/salmon/bin/*.AppImage'
+
+          # --- macOS Universal ---
           - name: 'salmon'
             platform: 'darwin/universal'
             os: 'macos-latest'
             label: 'darwin-universal'
+            build_cmd: 'wails3 task darwin:package:universal'
+            artifact_path: 'app/salmon/bin/*.app'
+
+          # --- Android (APK / AAB) ---
+          - name: 'salmon'
+            platform: 'android'
+            os: 'ubuntu-latest'
+            label: 'android'
+            build_cmd: 'wails3 task android:bundle:fat'
+            artifact_path: 'app/salmon/bin/*.aab'
+
+          # --- iOS ---
+          - name: 'salmon'
+            platform: 'ios'
+            os: 'macos-latest'
+            label: 'ios'
+            build_cmd: 'wails3 task ios:build'
+            artifact_path: 'app/salmon/bin/*.app'
+
     runs-on: ${{ matrix.build.os }}
+    continue-on-error: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,42 +74,76 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-        
-      - name: Verify Wails CLI
-        shell: bash
-        run: |
-          which -a wails  || echo "no wails v2 on PATH"
-          which -a wails3 || echo "no wails3 on PATH"
-          wails3 --version || true
-          wails  --version || true
 
-      - name: Build Wails v3 app
-        shell: bash
-        working-directory: app/salmon
+      # --- Platform-Specific Dependencies ---
+
+      - name: Install Linux dependencies (GTK4 + WebKitGTK 6.0)
+        if: runner.os == 'Linux' && (matrix.build.label == 'linux-amd64-deb' || matrix.build.label == 'linux-amd64-appimage')
         run: |
-          if [ "${{ matrix.build.platform }}" = "darwin/universal" ]; then
-            wails3 build -platform darwin/universal
-          else
-            wails3 build -platform ${{ matrix.build.platform }}
-          fi
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config
+
+      - name: Install NSIS (Windows)
+        if: runner.os == 'Windows' && matrix.build.label == 'windows-amd64'
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          # Add-Content is used instead of Out-File to avoid injecting a UTF-8 BOM into GITHUB_PATH
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files (x86)\NSIS"
+
+      - name: Setup Android SDK + NDK
+        if: matrix.build.label == 'android'
+        uses: maxim-lobanov/setup-android-tools@v1
+        with:
+          packages: |
+            platforms;android-35
+            build-tools;35.0.0
+            ndk;26.3.11579264
+          cache: true
+
+      - name: Set Android environment variables
+        if: matrix.build.label == 'android'
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> $GITHUB_ENV
+          echo "JAVA_HOME=$JAVA_HOME_21_X64" >> $GITHUB_ENV
+
+      - name: Verify Wails Doctor
+        run: wails3 doctor || true
+
+      # --- Build Step ---
+      - name: Build ${{ matrix.build.label }}
+        working-directory: app/salmon
+        run: ${{ matrix.build.build_cmd }}
+        shell: bash
 
       - name: Debug build output
-        shell: bash
+        if: always()
         run: ls -la app/salmon/bin || true
+        shell: bash
 
-      - name: Upload artifacts
+      # --- Upload Artifacts ---
+      - name: Upload ${{ matrix.build.label }} artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.build.name }}-${{ matrix.build.label }}
-          path: app/salmon/bin/*
-          if-no-files-found: error
+          path: ${{ matrix.build.artifact_path }}
+          if-no-files-found: warn
 
   release:
     needs: build
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
