@@ -26,7 +26,7 @@ jobs:
         with: { version: 9, run_install: false }
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
       - name: npm → pnpm shim
