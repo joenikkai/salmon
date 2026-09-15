@@ -124,7 +124,6 @@ yarn-error.log*
 lerna-debug.log*
 package-lock.json?  # Keep if you commit lockfiles, otherwise uncomment
 yarn.lock?          # Same
-pnpm-lock.yaml?     # Same
 .eslintcache
 .nyc_output/
 dist/
