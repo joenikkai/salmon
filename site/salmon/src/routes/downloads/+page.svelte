@@ -16,7 +16,7 @@
   }
 
   const GITHUB_REPO = 'joenikkai/salmon';
-  const PLATFORMS = ['Windows', 'macOS', 'Linux'] as const;
+  const PLATFORMS = ['Windows', 'macOS', 'Linux', 'Android', 'iOS'] as const;
   type Platform = (typeof PLATFORMS)[number];
 
   const navLinks = [
@@ -25,6 +25,14 @@
     { href: '/terms-of-use', label: 'Terms of use' },
     { href: '/sponsor', label: 'Sponsor' }
   ];
+
+  /** Per-platform context rendered above the asset grid. */
+  const PLATFORM_NOTES: Partial<Record<Platform, string>> = {
+    Android:
+      'Android builds ship as app bundles (.aab) — the format Google Play distributes from. Sideloading on a device needs an APK build.',
+    iOS:
+      'iOS builds are distributed through TestFlight and the App Store. The .app bundle below is a development/simulator build, not a store package.'
+  };
 
   let release = $state<Release | null>(null);
   let error = $state<string | null>(null);
@@ -79,12 +87,33 @@
     (release?.assets ?? []).reduce((sum, a) => sum + a.download_count, 0)
   );
 
+  /**
+   * Release assets are prefixed with their CI artifact label
+   * (e.g. `salmon-android-…`, `salmon-darwin-universal-…`, `salmon-ios-…`),
+   * so we sniff the label first and fall back to the file extension.
+   */
   function getPlatform(name: string): Platform | 'Other' {
     const n = name.toLowerCase();
+
+    // Artifact labels from the release workflow (most reliable signal).
+    if (n.includes('ios')) return 'iOS';
+    if (n.includes('android')) return 'Android';
+    if (n.includes('windows') || n.includes('win32')) return 'Windows';
+    if (n.includes('darwin') || n.includes('macos') || n.includes('osx'))
+      return 'macOS';
+    if (n.includes('linux')) return 'Linux';
+
+    // Extension fallbacks.
     if (n.endsWith('.exe') || n.endsWith('.msi')) return 'Windows';
     if (n.endsWith('.dmg') || n.endsWith('.pkg')) return 'macOS';
     if (n.endsWith('.deb') || n.endsWith('.rpm') || n.endsWith('.appimage'))
       return 'Linux';
+    if (n.endsWith('.apk') || n.endsWith('.aab')) return 'Android';
+    if (n.endsWith('.ipa')) return 'iOS';
+    if (n.endsWith('.app')) {
+      // `.app` is used by both macOS and iOS — disambiguate by prefix.
+      return n.includes('ios') ? 'iOS' : 'macOS';
+    }
     return 'Other';
   }
 
@@ -98,6 +127,11 @@
     if (n.endsWith('.rpm')) return 'RPM package';
     if (n.endsWith('.appimage')) return 'AppImage';
     if (n.endsWith('.tar.gz')) return 'Tarball';
+    if (n.endsWith('.apk')) return 'Android package';
+    if (n.endsWith('.aab')) return 'Android app bundle';
+    if (n.endsWith('.ipa')) return 'iOS app package';
+    if (n.endsWith('.app'))
+      return n.includes('ios') ? 'iOS app bundle' : 'macOS app bundle';
     if (n.endsWith('.zip')) return 'Zip archive';
     return 'Download';
   }
@@ -105,9 +139,11 @@
   function arch(name: string): string | null {
     const n = name.toLowerCase();
     if (n.includes('universal')) return 'Universal';
+    if (n.includes('fat')) return 'All ABIs';
     if (n.includes('arm64') || n.includes('aarch64')) return 'ARM64';
     if (n.includes('x64') || n.includes('x86_64') || n.includes('amd64'))
       return 'x64';
+    if (n.includes('x86') || n.includes('386')) return 'x86';
     return null;
   }
 
@@ -123,7 +159,7 @@
   <title>Download — {Sitename}</title>
   <meta
     name="description"
-    content={`Download the latest version of ${Sitename} for Windows, macOS and Linux. Builds are published directly from GitHub Releases.`}
+    content={`Download the latest version of ${Sitename} for Windows, macOS, Linux, Android and iOS. Builds are published directly from GitHub Releases.`}
   />
 </svelte:head>
 
@@ -191,8 +227,9 @@
       <h1>Download {Sitename}</h1>
 
       <p class="lede">
-        Every build is published straight from GitHub Releases, so you always get the
-        exact artifact that was shipped — nothing repackaged, nothing added.
+        Every build is published straight from GitHub Releases — desktop and mobile —
+        so you always get the exact artifact that was shipped. Nothing repackaged,
+        nothing added.
       </p>
 
       {#if release}
@@ -219,7 +256,7 @@
     <div class="container">
       {#if loading}
         <div class="skeleton-grid" aria-hidden="true">
-          {#each [1, 2, 3] as _}
+          {#each [1, 2, 3, 4, 5] as _}
             <div class="skeleton-card">
               <span class="sk sk-icon"></span>
               <span class="sk sk-line"></span>
@@ -264,6 +301,10 @@
                   {group.assets.length === 1 ? 'build' : 'builds'}
                 </span>
               </div>
+
+              {#if PLATFORM_NOTES[group.platform]}
+                <p class="platform-note">{PLATFORM_NOTES[group.platform]}</p>
+              {/if}
 
               {#if group.assets.length === 0}
                 <p class="empty">No builds for this platform yet — check back soon.</p>
@@ -405,6 +446,18 @@
     <svg viewBox="0 0 24 24" fill="currentColor">
       <path d="M16.4 12.8c0-2.1 1.7-3.1 1.8-3.2-.9-1.4-2.4-1.6-2.9-1.7-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.7-.7-1.4 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2.1 2.6 2 1 0 1.4-.6 2.7-.6s1.6.6 2.7.6c1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4 0 0-2.2-.9-2.4-2.9Z" />
       <path d="M14.5 6.4c.6-.7 1-1.7.9-2.6-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.5 1 .1 2-.5 2.5-1.2Z" />
+    </svg>
+  {:else if platform === 'Android'}
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6.9 4.6 5.8 2.8a.45.45 0 0 1 .77-.47l1.13 1.87a7.4 7.4 0 0 1 6.6 0l1.13-1.87a.45.45 0 1 1 .77.47l-1.1 1.8A6.6 6.6 0 0 1 18.6 9.2H5.4a6.6 6.6 0 0 1 1.5-4.6ZM9.5 7a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3Zm5 0a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3Z" />
+      <path d="M5.4 10.3h13.2v6.9a1.4 1.4 0 0 1-1.4 1.4h-1.1v2.1a1.3 1.3 0 1 1-2.6 0v-2.1h-2.8v2.1a1.3 1.3 0 1 1-2.6 0v-2.1H6.8a1.4 1.4 0 0 1-1.4-1.4v-6.9Z" />
+      <path d="M3.2 10.4a1.35 1.35 0 0 1 2.7 0v4.6a1.35 1.35 0 1 1-2.7 0v-4.6Zm14.9 0a1.35 1.35 0 0 1 2.7 0v4.6a1.35 1.35 0 1 1-2.7 0v-4.6Z" />
+    </svg>
+  {:else if platform === 'iOS'}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="2" width="12" height="20" rx="3" />
+      <path d="M10.4 5.2h3.2" />
+      <path d="M12 18.4h.01" />
     </svg>
   {:else}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -809,6 +862,14 @@
     border-radius: 999px;
     background: var(--surface-2);
     border: 1px solid var(--border);
+  }
+
+  .platform-note {
+    margin: -8px 0 20px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 62rem;
   }
 
   .assets-grid {
