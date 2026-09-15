@@ -15,10 +15,10 @@ jobs:
       matrix:
         build:
           - { name: salmon, platform: 'windows/amd64',    os: 'windows-latest', label: 'windows-amd64',       build_cmd: 'wails3 task windows:create:nsis:installer', artifact_path: 'app/salmon/bin/*.exe' }
-          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-latest',  label: 'linux-amd64-deb',     build_cmd: 'wails3 task linux:create:deb',              artifact_path: 'app/salmon/bin/*.deb' }
-          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-latest',  label: 'linux-amd64-appimage',build_cmd: 'wails3 task linux:create:appimage',         artifact_path: 'app/salmon/bin/*.AppImage' }
+          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-24.04',  label: 'linux-amd64-deb',     build_cmd: 'wails3 task linux:create:deb',              artifact_path: 'app/salmon/bin/*.deb' }
+          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-24.04',  label: 'linux-amd64-appimage',build_cmd: 'wails3 task linux:create:appimage',         artifact_path: 'app/salmon/bin/*.AppImage' }
           - { name: salmon, platform: 'darwin/universal', os: 'macos-latest',   label: 'darwin-universal',    build_cmd: 'wails3 task darwin:package:universal',      artifact_path: 'app/salmon/bin/*.app' }
-          - { name: salmon, platform: 'android',          os: 'ubuntu-latest',  label: 'android',             build_cmd: 'wails3 task android:bundle:fat',            artifact_path: 'app/salmon/bin/*.aab' }
+          - { name: salmon, platform: 'android',          os: 'ubuntu-24.04',  label: 'android',             build_cmd: 'wails3 task android:bundle:fat',            artifact_path: 'app/salmon/bin/*.aab' }
           - { name: salmon, platform: 'ios',              os: 'macos-latest',   label: 'ios',                 build_cmd: 'wails3 task ios:build',                     artifact_path: 'app/salmon/bin/*.app' }
 
     runs-on: ${{ matrix.build.os }}
@@ -172,7 +172,7 @@ jobs:
   release:
     needs: build
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -202,4 +202,3 @@ jobs:
           tag_name: ${{ github.ref_name }}
 
 
-          
