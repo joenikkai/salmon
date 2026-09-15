@@ -14,47 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: 'salmon'
-            platform: 'windows/amd64'
-            os: 'windows-latest'
-            label: 'windows-amd64'
-            build_cmd: 'wails3 task windows:create:nsis:installer'
-            artifact_path: 'app/salmon/bin/*.exe'
-
-          - name: 'salmon'
-            platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-            label: 'linux-amd64-deb'
-            build_cmd: 'wails3 task linux:create:deb'
-            artifact_path: 'app/salmon/bin/*.deb'
-
-          - name: 'salmon'
-            platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-            label: 'linux-amd64-appimage'
-            build_cmd: 'wails3 task linux:create:appimage'
-            artifact_path: 'app/salmon/bin/*.AppImage'
-
-          - name: 'salmon'
-            platform: 'darwin/universal'
-            os: 'macos-latest'
-            label: 'darwin-universal'
-            build_cmd: 'wails3 task darwin:package:universal'
-            artifact_path: 'app/salmon/bin/*.app'
-
-          - name: 'salmon'
-            platform: 'android'
-            os: 'ubuntu-latest'
-            label: 'android'
-            build_cmd: 'wails3 task android:bundle:fat'
-            artifact_path: 'app/salmon/bin/*.aab'
-
-          - name: 'salmon'
-            platform: 'ios'
-            os: 'macos-latest'
-            label: 'ios'
-            build_cmd: 'wails3 task ios:build'
-            artifact_path: 'app/salmon/bin/*.app'
+          - { name: salmon, platform: 'windows/amd64',    os: 'windows-latest', label: 'windows-amd64',       build_cmd: 'wails3 task windows:create:nsis:installer', artifact_path: 'app/salmon/bin/*.exe' }
+          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-latest',  label: 'linux-amd64-deb',     build_cmd: 'wails3 task linux:create:deb',              artifact_path: 'app/salmon/bin/*.deb' }
+          - { name: salmon, platform: 'linux/amd64',      os: 'ubuntu-latest',  label: 'linux-amd64-appimage',build_cmd: 'wails3 task linux:create:appimage',         artifact_path: 'app/salmon/bin/*.AppImage' }
+          - { name: salmon, platform: 'darwin/universal', os: 'macos-latest',   label: 'darwin-universal',    build_cmd: 'wails3 task darwin:package:universal',      artifact_path: 'app/salmon/bin/*.app' }
+          - { name: salmon, platform: 'android',          os: 'ubuntu-latest',  label: 'android',             build_cmd: 'wails3 task android:bundle:fat',            artifact_path: 'app/salmon/bin/*.aab' }
+          - { name: salmon, platform: 'ios',              os: 'macos-latest',   label: 'ios',                 build_cmd: 'wails3 task ios:build',                     artifact_path: 'app/salmon/bin/*.app' }
 
     runs-on: ${{ matrix.build.os }}
     continue-on-error: true
@@ -65,9 +30,6 @@ jobs:
         with:
           submodules: recursive
 
-      # ---------------------------------------------------------------
-      # PREFLIGHT 1: Wails Taskfiles must be tracked in git.
-      # ---------------------------------------------------------------
       - name: Verify Wails build directory is present
         shell: bash
         run: |
@@ -82,56 +44,27 @@ jobs:
             app/salmon/build/android/Taskfile.yml \
             app/salmon/build/ios/Taskfile.yml
           do
-            if [ ! -f "$f" ]; then
-              echo "::error::MISSING $f — is app/salmon/build/ committed to git?"
-              missing=1
-            fi
+            [ -f "$f" ] || { echo "::error::MISSING $f — is app/salmon/build/ committed?"; missing=1; }
           done
-          if [ "$missing" -ne 0 ]; then
-            echo "--- Repo layout under app/salmon (first 3 levels) ---"
-            find app/salmon -maxdepth 3 -type f 2>/dev/null | sort || true
-            exit 1
-          fi
-          echo "All required Wails Taskfiles are present."
+          [ "$missing" -eq 0 ] || { find app/salmon -maxdepth 3 -type f 2>/dev/null | sort || true; exit 1; }
 
-      # ---------------------------------------------------------------
-      # PREFLIGHT 2: go.mod / go.sum must be committed.
-      # This is what caused "go: go.mod file not found in current
-      # directory or any parent directory".
-      # ---------------------------------------------------------------
       - name: Verify go.mod / go.sum are present
         shell: bash
         run: |
           set -e
-          if [ ! -f "app/salmon/go.mod" ]; then
-            echo "::error::app/salmon/go.mod is MISSING. Commit app/salmon/go.mod (and go.sum) to git."
-            echo "--- Any go.mod in the repo? ---"
+          [ -f app/salmon/go.mod ] || {
+            echo "::error::app/salmon/go.mod is MISSING. Commit it."
             find . -maxdepth 5 -name go.mod -not -path '*/node_modules/*' 2>/dev/null || true
-            echo "--- Any go.work? ---"
-            find . -maxdepth 5 -name go.work 2>/dev/null || true
-            echo "--- app/salmon contents ---"
-            ls -la app/salmon || true
             exit 1
-          fi
-          if [ ! -f "app/salmon/go.sum" ]; then
-            echo "::warning::app/salmon/go.sum is missing — go mod tidy will fetch everything fresh."
-          fi
-          echo "go.mod found. First lines:"
-          head -n 10 app/salmon/go.mod
+          }
+          [ -f app/salmon/go.sum ] || echo "::warning::app/salmon/go.sum missing — go mod tidy will fetch fresh."
 
-      # ---------------------------------------------------------------
-      # Toolchain setup
-      # ---------------------------------------------------------------
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-          cache-dependency-path: |
-            app/salmon/go.sum
-            go.sum
+          cache-dependency-path: app/salmon/go.sum
 
-      # pnpm must be installed BEFORE setup-node if we want the
-      # setup-node pnpm cache to work.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -143,11 +76,9 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
-          cache-dependency-path: 'app/salmon/frontend/pnpm-lock.yaml'
+          cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
 
-      # The Wails Taskfile often calls `npm` directly. We use pnpm, so
-      # provide an `npm` shim that proxies to pnpm. This keeps the
-      # generated Taskfiles untouched.
+      # Wails Taskfiles call `npm`. Route to pnpm.
       - name: Install npm→pnpm shim
         shell: bash
         run: |
@@ -155,75 +86,38 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           cat > "$HOME/.local/bin/npm" <<'EOF'
           #!/usr/bin/env bash
-          # Wails Taskfiles call `npm`. Route everything to pnpm.
           exec pnpm "$@"
           EOF
           chmod +x "$HOME/.local/bin/npm"
-          # Windows (Git Bash) also uses a shell script; make a .cmd wrapper too.
           if [ "$RUNNER_OS" = "Windows" ]; then
-            cat > "$HOME/.local/bin/npm.cmd" <<'EOF'
-          @echo off
-          pnpm %*
-          EOF
+            printf '@echo off\r\npnpm %%*\r\n' > "$HOME/.local/bin/npm.cmd"
           fi
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          echo "Shim installed. Verifying:"
-          "$HOME/.local/bin/npm" --version
 
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
-      # ---------------------------------------------------------------
-      # Linux deps (GTK4 + WebKitGTK 6.0) — explicitly export pkg-config
-      # paths via GITHUB_ENV so cgo sees them in the Build step.
-      # ---------------------------------------------------------------
       - name: Install Linux dependencies
         if: runner.os == 'Linux' && (matrix.build.label == 'linux-amd64-deb' || matrix.build.label == 'linux-amd64-appimage')
         shell: bash
         run: |
           set -e
-          echo "--- Runner distro ---"
-          cat /etc/os-release
-          echo "--- Installing deps ---"
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libgtk-4-dev \
-            libwebkitgtk-6.0-dev \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            ca-certificates
-          echo "--- Verifying pkg-config ---"
-          pkg-config --exists gtk4          && echo "gtk4: OK ($(pkg-config --modversion gtk4))"          || { echo "::error::gtk4.pc not found after install"; find / -name 'gtk4.pc' 2>/dev/null; exit 1; }
-          pkg-config --exists webkitgtk-6.0 && echo "webkitgtk-6.0: OK ($(pkg-config --modversion webkitgtk-6.0))" || { echo "::error::webkitgtk-6.0.pc not found after install"; find / -name 'webkitgtk-6.0.pc' 2>/dev/null; exit 1; }
-
-          # Make sure the build step (which uses Go/cgo) can find the .pc files.
-          # apt puts them in /usr/lib/<multiarch>/pkgconfig; the default
-          # pkg-config search path usually covers it, but Go's cgo invokes
-          # pkg-config with a sanitized env on some runners, so export explicitly.
-          for d in \
-            /usr/lib/x86_64-linux-gnu/pkgconfig \
-            /usr/lib/pkgconfig \
-            /usr/share/pkgconfig
-          do
+            libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config libssl-dev ca-certificates
+          pkg-config --exists gtk4          || { echo "::error::gtk4.pc missing";          exit 1; }
+          pkg-config --exists webkitgtk-6.0 || { echo "::error::webkitgtk-6.0.pc missing"; exit 1; }
+          for d in /usr/lib/x86_64-linux-gnu/pkgconfig /usr/lib/pkgconfig /usr/share/pkgconfig; do
             [ -d "$d" ] && echo "PKG_CONFIG_PATH=${d}:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           done
 
-      # ---------------------------------------------------------------
-      # Windows NSIS
-      # ---------------------------------------------------------------
       - name: Install NSIS (Windows)
         if: runner.os == 'Windows' && matrix.build.label == 'windows-amd64'
         shell: pwsh
         run: |
           choco install nsis -y
-          # Add-Content avoids the UTF-8 BOM that Out-File -Encoding utf8
-          # injects into GITHUB_PATH and silently breaks PATH registration.
           Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files (x86)\NSIS"
 
-      # ---------------------------------------------------------------
-      # Android SDK + NDK
-      # ---------------------------------------------------------------
       - name: Setup Android SDK + NDK
         if: matrix.build.label == 'android'
         uses: maxim-lobanov/setup-android-tools@v1
@@ -238,30 +132,23 @@ jobs:
         if: matrix.build.label == 'android'
         shell: bash
         run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT"                        >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264"  >> $GITHUB_ENV
-          echo "JAVA_HOME=$JAVA_HOME_21_X64"                           >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT"                       >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> $GITHUB_ENV
+          echo "JAVA_HOME=$JAVA_HOME_21_X64"                          >> $GITHUB_ENV
 
-      # ---------------------------------------------------------------
-      # Diagnostics — print exactly what tools are on PATH.
-      # ---------------------------------------------------------------
       - name: Toolchain diagnostic
         shell: bash
         run: |
-          echo "go     : $(command -v go     || echo MISSING)"
-          echo "node   : $(command -v node   || echo MISSING)"
-          echo "npm    : $(command -v npm    || echo MISSING)"
-          echo "pnpm   : $(command -v pnpm   || echo MISSING)"
-          echo "wails3 : $(command -v wails3 || echo MISSING)"
-          echo "go version    : $(go version    2>/dev/null || echo n/a)"
-          echo "node version  : $(node --version 2>/dev/null || echo n/a)"
-          echo "npm version   : $(npm --version  2>/dev/null || echo n/a)"
-          echo "pnpm version  : $(pnpm --version 2>/dev/null || echo n/a)"
+          echo "go:     $(command -v go     || echo MISSING)  $(go version 2>/dev/null)"
+          echo "node:   $(command -v node   || echo MISSING)  $(node --version 2>/dev/null)"
+          echo "npm:    $(command -v npm    || echo MISSING)  $(npm --version 2>/dev/null)"
+          echo "pnpm:   $(command -v pnpm   || echo MISSING)  $(pnpm --version 2>/dev/null)"
+          echo "wails3: $(command -v wails3 || echo MISSING)"
           echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-<unset>}"
 
-      - name: Wails doctor (diagnostic)
-        shell: bash
+      - name: Wails doctor
         working-directory: app/salmon
+        shell: bash
         run: wails3 doctor || true
 
       - name: Build ${{ matrix.build.label }}
@@ -314,3 +201,5 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ github.ref_name }}
 
+
+          
