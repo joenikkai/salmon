@@ -17,12 +17,15 @@ jobs:
           - name: 'salmon'
             platform: 'linux/amd64'
             os: 'ubuntu-latest'
+            label: 'linux-amd64'
           - name: 'salmon'
             platform: 'windows/amd64'
             os: 'windows-latest'
+            label: 'windows-amd64'
           - name: 'salmon'
             platform: 'darwin/universal'
             os: 'macos-latest'
+            label: 'darwin-universal'
     runs-on: ${{ matrix.build.os }}
     steps:
       - name: Checkout
@@ -30,22 +33,34 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build Wails app
-        uses: dAppServer/wails-build-action@v2.2
-        id: build
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          build-name: ${{ matrix.build.name }}
-          build-platform: ${{ matrix.build.platform }}
-          package: false
-          go-version: '1.20'
-          # Point the action at your Wails project
-          wails-working-directory: 'app/salmon'
+          go-version: '1.22'
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+      - name: Build Wails v3 app
+        shell: bash
+        working-directory: app/salmon
+        run: |
+          if [ "${{ matrix.build.platform }}" = "darwin/universal" ]; then
+            wails3 build -platform darwin/universal
+          else
+            wails3 build -platform ${{ matrix.build.platform }}
+          fi
+
+      - name: Debug build output
+        shell: bash
+        run: ls -la app/salmon/bin || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.build.name }}-${{ matrix.build.platform }}
-          path: app/salmon/build/bin/*
+          name: ${{ matrix.build.name }}-${{ matrix.build.label }}
+          path: app/salmon/bin/*
+          if-no-files-found: error
 
   release:
     needs: build
@@ -58,9 +73,22 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare release files
+        shell: bash
+        run: |
+          mkdir -p release
+          for d in artifacts/*/; do
+            label=$(basename "$d")
+            for f in "$d"*; do
+              [ -f "$f" ] || continue
+              cp "$f" "release/${label}-$(basename "$f")"
+            done
+          done
+          ls -la release
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release/*
           generate_release_notes: true
           tag_name: ${{ github.ref_name }}
