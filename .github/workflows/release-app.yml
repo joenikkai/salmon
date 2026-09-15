@@ -5,13 +5,7 @@ on:
     tags:
       - 'app-v*'
 
-- name: Verify Wails CLI
-  shell: bash
-  run: |
-    which -a wails  || echo "no wails v2 on PATH"
-    which -a wails3 || echo "no wails3 on PATH"
-    wails3 --version || true
-    wails  --version || true      
+      
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -47,6 +41,14 @@ jobs:
 
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+        
+      - name: Verify Wails CLI
+        shell: bash
+        run: |
+          which -a wails  || echo "no wails v2 on PATH"
+          which -a wails3 || echo "no wails3 on PATH"
+          wails3 --version || true
+          wails  --version || true
 
       - name: Build Wails v3 app
         shell: bash
