@@ -137,7 +137,7 @@ jobs:
         run: |
           ls -la app/salmon/docker
           head -n 20 app/salmon/docker/Dockerfile.${{ matrix.distro }}
-          
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Build builder image (${{ matrix.distro }})
@@ -187,13 +187,19 @@ jobs:
           cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
-      - uses: maxim-lobanov/setup-android-tools@v1
-        with:
-          packages: |
-            platforms;android-35
-            build-tools;35.0.0
-            ndk;26.3.11579264
-          cache: true
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> "$GITHUB_ENV"        
+
+
       - name: npm → pnpm shim
         run: |
           mkdir -p "$HOME/.local/bin"
