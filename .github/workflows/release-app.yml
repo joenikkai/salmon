@@ -229,15 +229,18 @@ jobs:
         with: { path: artifacts }
       - name: Prepare release files
         run: |
-          mkdir -p release
           for d in artifacts/*/; do
             label=$(basename "$d")
             for f in "$d"*; do
-              [ -f "$f" ] || continue
-              cp "$f" "release/${label}-$(basename "$f")"
+              [ -e "$f" ] || continue
+              if [ -d "$f" ]; then
+                ( cd "$(dirname "$f")" && zip -qr - "$(basename "$f")" ) \
+                  > "release/${label}-$(basename "$f").zip"
+              else
+                cp "$f" "release/${label}-$(basename "$f")"
+              fi
             done
           done
-          ls -la release
       - uses: softprops/action-gh-release@v2
         with:
           files: release/*
