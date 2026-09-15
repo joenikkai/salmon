@@ -143,6 +143,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
+          cache-dependency-path: 'app/salmon/frontend/pnpm-lock.yaml'
 
       # The Wails Taskfile often calls `npm` directly. We use pnpm, so
       # provide an `npm` shim that proxies to pnpm. This keeps the
@@ -313,4 +314,3 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ github.ref_name }}
 
-          
