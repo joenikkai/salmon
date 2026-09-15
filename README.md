@@ -2,7 +2,7 @@
 
 > A super awesome ledger.
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/3/39/Salmo_salar.jpg" alt="A picture of a salmon from Wikipedia">
+<img src="site/salmon/src/lib/assets/favicon.svg" alt="Salmon Logo">
 
 ## Why?
 
