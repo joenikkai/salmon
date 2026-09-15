@@ -139,7 +139,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile.${{ matrix.distro }}
+          file: app/salmon/docker/Dockerfile.${{ matrix.distro }}
           load: true
           tags: salmon-builder:${{ matrix.distro }}
           cache-from: type=gha,scope=${{ matrix.distro }}
