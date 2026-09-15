@@ -221,7 +221,7 @@ jobs:
   # ============================================================
   release:
     needs: [build-windows, build-macos, build-ios, build-linux, build-android]
-    if: always() && startsWith(github.ref, 'refs/tags/app-v')
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/app-v') }}
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
