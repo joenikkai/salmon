@@ -1,5 +1,6 @@
 <script>
     import { Sitename } from "$lib";
+    import {PUBLIC_SALMON_MAINTAINERS_EMAIL} from "$env/static/public"
 
     // Loads your ./LICENSE file as a raw string (Vite `?raw` import).
     // Adjust the relative path if this route lives elsewhere.
@@ -214,7 +215,7 @@
 
                 <div class="hero-actions">
                     <a class="btn btn-primary" href="/license/request">Request a licence</a>
-                    <a class="btn btn-outline" href="mailto:hello@example.com">Email the maintainer</a>
+                    <a class="btn btn-outline" href={PUBLIC_SALMON_MAINTAINERS_EMAIL}>Email the maintainer</a>
                 </div>
             </div>
 

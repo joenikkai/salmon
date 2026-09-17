@@ -1,10 +1,11 @@
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import { Sitename } from "$lib";
+    import {PUBLIC_SALMON_LEGAL_EMAIL} from "$env/static/public"
 
     const LAST_UPDATED = "15 September 2026";
     const EFFECTIVE_DATE = "15 September 2026";
-    const CONTACT_EMAIL = "legal@example.com";
+    const CONTACT_EMAIL = PUBLIC_SALMON_LEGAL_EMAIL;
     const GOVERNING_LAW = "the Republic of Kenya";
 
     const sections = [
