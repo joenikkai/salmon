@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "pnpm run test:unit -- --run",
-		"deploy": "pnpm run build && wrangler deploy"
+		"deploy": "export PUBLIC_SITE_VERSION=$(git describe --tags --match 'site-v*' --abbrev=0 ) && echo \"PUBLIC_SITE_VERSION=$PUBLIC_SITE_VERSION\" >.env && pnpm run build && wrangler deploy"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
