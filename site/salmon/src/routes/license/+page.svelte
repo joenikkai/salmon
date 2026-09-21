@@ -1,6 +1,6 @@
 <script>
     import { Sitename } from "$lib";
-    import {PUBLIC_SALMON_MAINTAINERS_EMAIL} from "$env/static/public"
+    import {e} from "$env/static/public"
 
     // Loads your ./LICENSE file as a raw string (Vite `?raw` import).
     // Adjust the relative path if this route lives elsewhere.
