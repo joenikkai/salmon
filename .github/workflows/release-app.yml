@@ -135,8 +135,8 @@ jobs:
 
       - name: Verify dockerfiles
         run: |
-          ls -la app/salmon/docker
-          head -n 20 app/salmon/docker/Dockerfile.${{ matrix.distro }}
+          ls -la app/salmon/build/docker
+          head -n 20 app/salmon/docker/build/Dockerfile.${{ matrix.distro }}
 
       - uses: docker/setup-buildx-action@v3
 
@@ -144,7 +144,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: app/salmon
-          file: app/salmon/docker/Dockerfile.${{ matrix.distro }}
+          file: app/salmon/build/docker/Dockerfile.${{ matrix.distro }}
           load: true
           tags: salmon-builder:${{ matrix.distro }}
           cache-from: type=gha,scope=${{ matrix.distro }}
