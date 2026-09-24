@@ -229,6 +229,7 @@ jobs:
         with: { path: artifacts }
       - name: Prepare release files
         run: |
+          mkdir -p release
           for d in artifacts/*/; do
             label=$(basename "$d")
             for f in "$d"*; do
