@@ -55,7 +55,7 @@ build/
 *~
 \#*\#
 /.emacs.desktop
-/.emacs.desktop.lock
+# /.emacs.desktop.lock
 .elc
 auto-save-list
 tramp
@@ -83,7 +83,7 @@ tramp
 *.log
 *.pid
 *.seed
-*.pid.lock
+# *.pid.lock
 *.bak
 *.tmp
 *.temp
@@ -171,7 +171,7 @@ coverage.out
 
 ## Rust
 /target/
-Cargo.lock?         # Keep if binary project, ignore for libraries
+# Cargo.lock?         # Keep if binary project, ignore for libraries
 *.rs.bk
 *.rlib
 *.prof
@@ -182,14 +182,14 @@ Cargo.lock?         # Keep if binary project, ignore for libraries
 .bundle
 .ruby-version
 .ruby-gemset
-Gemfile.lock?       # Keep or ignore based on workflow
+# Gemfile.lock?       # Keep or ignore based on workflow
 vendor/bundle/
 vendor/cache/
 
 ## PHP
 composer.phar
 vendor/
-composer.lock?      # Keep for production, ignore for libraries
+# composer.lock?      # Keep for production, ignore for libraries
 .phpunit.result.cache
 *.cache
 
@@ -219,7 +219,7 @@ xcuserdata/
 *.xcworkspace!   # Keep if needed, or ignore if only xcodeproj
 *.xcodeproj/xcuserdata/
 Pods/
-Podfile.lock?      # Keep or ignore based on team practice
+# Podfile.lock?      # Keep or ignore based on team practice
 *.ipa
 *.dSYM.zip
 
@@ -288,7 +288,7 @@ terraform.rc
 ## Kubernetes / Helm
 *.secret.yaml
 *.secret.yml
-helmfile.lock?      # Keep or ignore
+# helmfile.lock?      # Keep or ignore
 
 ## Ansible
 *.retry
