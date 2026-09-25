@@ -1,0 +1,263 @@
+name: Release App
+
+on:
+  push:
+    tags:
+      - 'app-v*'
+  workflow_dispatch:        # allows manual trigger from the Actions tab
+
+permissions:
+  contents: write           # needed to create GitHub Releases
+
+env:
+  NODE_OPTIONS: "--max-old-space-size=4096"
+
+jobs:
+  # ------------------------------------------------------------------
+  # Desktop builds: Windows, Linux, macOS
+  # ------------------------------------------------------------------
+  build-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact_name: linux-packages
+          - os: windows-latest
+            platform: windows
+            artifact_name: windows-installer
+          - os: macos-latest
+            platform: darwin
+            artifact_name: macos-app
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'        # Wails v3 requires Go 1.25+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install system dependencies (Linux only)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            rpm \
+            fakeroot
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build & package desktop app
+        run: |
+          # wails3 package detects the host OS and produces the correct
+          # artifacts: .exe on Windows, .app/.dmg on macOS,
+          # and AppImage/deb/rpm on Linux.
+          wails3 package
+        env:
+          CGO_ENABLED: 1
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            bin/*
+            build/bin/*
+          if-no-files-found: warn
+          retention-days: 7
+
+  # ------------------------------------------------------------------
+  # Android build: AAB (Play Store) + APK (sideload / testing)
+  # ------------------------------------------------------------------
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Java (JDK 21 for Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;26.3.11579264'
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      # ----- APK (fat, arm64 + x86_64) -----
+      - name: Build Android APK
+        run: wails3 task android:package:fat
+
+      # ----- AAB (fat, for Google Play) -----
+      - name: Build Android App Bundle (AAB)
+        run: wails3 task android:bundle:fat
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-packages
+          path: |
+            bin/*.apk
+            bin/*.aab
+          retention-days: 7
+
+  # ------------------------------------------------------------------
+  # iOS build: .ipa for distribution
+  # ------------------------------------------------------------------
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      # ----- Build .ipa for device distribution -----
+      # Requires the following secrets to be configured in the repository:
+      #   IOS_CODESIGN_IDENTITY      – e.g. "Apple Distribution: Your Name (TEAMID)"
+      #   IOS_PROVISIONING_PROFILE   – base64-encoded .mobileprovision content
+      - name: Decode provisioning profile
+        run: |
+          mkdir -p $RUNNER_TEMP/profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode \
+            > $RUNNER_TEMP/profiles/app.mobileprovision
+
+      - name: Build iOS IPA
+        run: |
+          wails3 task ios:package:ipa \
+            IOS_PLATFORM=device \
+            CODESIGN_IDENTITY="${{ secrets.IOS_CODESIGN_IDENTITY }}" \
+            PROVISIONING_PROFILE="$RUNNER_TEMP/profiles/app.mobileprovision"
+        env:
+          CGO_ENABLED: 1
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: bin/*.ipa
+          retention-days: 7
+
+  # ------------------------------------------------------------------
+  # Create GitHub Release and attach all artifacts
+  # ------------------------------------------------------------------
+  release:
+    needs: [build-desktop, build-android, build-ios]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display collected files
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.app
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.apk
+            artifacts/**/*.aab
+            artifacts/**/*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
