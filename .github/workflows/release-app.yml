@@ -3,14 +3,15 @@ name: Release App
 on:
   push:
     tags:
-      - 'app-v*'
-  workflow_dispatch:        # allows manual trigger from the Actions tab
+      - 'v*'
+  workflow_dispatch:
 
 permissions:
-  contents: write           # needed to create GitHub Releases
+  contents: write
 
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
+  WAILS_VERSION: "v3.0.0-beta.20"   # pinned for reproducible builds
 
 jobs:
   # ------------------------------------------------------------------
@@ -42,7 +43,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'        # Wails v3 requires Go 1.25+
+          go-version: '1.25'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -54,34 +55,37 @@ jobs:
         with:
           version: 9
 
+      # ----- Linux: GTK4 + WebKitGTK 6.0 (Wails v3 default) -----
       - name: Install system dependencies (Linux only)
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
+            build-essential \
+            pkg-config \
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev \
             libayatana-appindicator3-dev \
             rpm \
             fakeroot
 
       - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+
+      - name: Verify Wails version
+        run: wails3 version
 
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm run build
 
       - name: Build & package desktop app
-        run: |
-          # wails3 package detects the host OS and produces the correct
-          # artifacts: .exe on Windows, .app/.dmg on macOS,
-          # and AppImage/deb/rpm on Linux.
-          wails3 package
+        working-directory: app/salmon
+        run: wails3 package
         env:
           CGO_ENABLED: 1
 
@@ -90,13 +94,12 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            bin/*
-            build/bin/*
+            app/salmon/bin/*
           if-no-files-found: warn
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # Android build: AAB (Play Store) + APK (sideload / testing)
+  # Android: AAB (Play Store) + APK (sideload)
   # ------------------------------------------------------------------
   build-android:
     runs-on: ubuntu-latest
@@ -122,7 +125,7 @@ jobs:
         with:
           version: 9
 
-      - name: Setup Java (JDK 21 for Gradle)
+      - name: Setup Java (JDK 21)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -134,35 +137,42 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;26.3.11579264'
 
       - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+
+      - name: Verify Wails version
+        run: wails3 version
 
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm run build
 
-      # ----- APK (fat, arm64 + x86_64) -----
-      - name: Build Android APK
+      - name: Build Android APK (fat)
+        working-directory: app/salmon
         run: wails3 task android:package:fat
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
-      # ----- AAB (fat, for Google Play) -----
-      - name: Build Android App Bundle (AAB)
+      - name: Build Android AAB (fat)
+        working-directory: app/salmon
         run: wails3 task android:bundle:fat
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-packages
           path: |
-            bin/*.apk
-            bin/*.aab
+            app/salmon/bin/*.apk
+            app/salmon/bin/*.aab
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # iOS build: .ipa for distribution
+  # iOS: .ipa
   # ------------------------------------------------------------------
   build-ios:
     runs-on: macos-latest
@@ -189,20 +199,19 @@ jobs:
           version: 9
 
       - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+
+      - name: Verify Wails version
+        run: wails3 version
 
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: app/salmon/frontend
         run: pnpm run build
 
-      # ----- Build .ipa for device distribution -----
-      # Requires the following secrets to be configured in the repository:
-      #   IOS_CODESIGN_IDENTITY      – e.g. "Apple Distribution: Your Name (TEAMID)"
-      #   IOS_PROVISIONING_PROFILE   – base64-encoded .mobileprovision content
       - name: Decode provisioning profile
         run: |
           mkdir -p $RUNNER_TEMP/profiles
@@ -210,6 +219,7 @@ jobs:
             > $RUNNER_TEMP/profiles/app.mobileprovision
 
       - name: Build iOS IPA
+        working-directory: app/salmon
         run: |
           wails3 task ios:package:ipa \
             IOS_PLATFORM=device \
@@ -222,11 +232,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: bin/*.ipa
+          path: app/salmon/bin/*.ipa
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # Create GitHub Release and attach all artifacts
+  # Release
   # ------------------------------------------------------------------
   release:
     needs: [build-desktop, build-android, build-ios]
