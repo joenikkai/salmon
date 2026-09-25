@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: linux
             artifact_name: linux-packages
           - os: windows-latest
@@ -64,10 +64,18 @@ jobs:
             build-essential \
             pkg-config \
             libgtk-4-dev \
-            libwebkitgtk-6.0-dev \
+            libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             rpm \
             fakeroot
+
+      - name: Install NSIS
+        if: matrix.platform == 'windows'
+        shell: powershell
+        run: |
+          choco install nsis -y --no-progress
+          $env:Path += ";C:\Program Files (x86)\NSIS\Bin"
+          makensis /VERSION
 
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
@@ -239,7 +247,8 @@ jobs:
   # Release
   # ------------------------------------------------------------------
   release:
-    needs: [build-desktop, build-android, build-ios]
+    # needs: [build-desktop, build-android, build-ios]
+    needs: [build-desktop, build-android]
     runs-on: ubuntu-latest
 
     steps:
