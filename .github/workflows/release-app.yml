@@ -74,19 +74,26 @@ jobs:
             rpm \
             fakeroot
 
-          # Confirm that the installed packages expose the expected pkg-config files.
-          dpkg -L libgtk-4-dev | grep '/gtk4.pc$'
-          dpkg -L libwebkitgtk-6.0-dev | grep '/webkitgtk-6.0.pc$'
+          GTK_PKGCONFIG_DIR="$(dirname "$(dpkg -L libgtk-4-dev | grep '/gtk4.pc$' | head -n1)")"
+          WEBKIT_PKGCONFIG_DIR="$(dirname "$(dpkg -L libwebkitgtk-6.0-dev | grep '/webkitgtk-6.0.pc$' | head -n1)")"
+
+          echo "GTK pkg-config directory: $GTK_PKGCONFIG_DIR"
+          echo "WebKitGTK pkg-config directory: $WEBKIT_PKGCONFIG_DIR"
+
+          echo "PKG_CONFIG_PATH=$GTK_PKGCONFIG_DIR:$WEBKIT_PKGCONFIG_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
 
       - name: Verify Linux GUI dependencies
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euxo pipefail
+
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+          pkg-config --variable pc_path pkg-config
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
           pkg-config --cflags --libs gtk4 webkitgtk-6.0
-
+      # windows
       - name: Install NSIS
         if: matrix.platform == 'windows'
         shell: powershell
