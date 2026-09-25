@@ -74,29 +74,27 @@ jobs:
             rpm \
             fakeroot
 
-          GTK_PC="$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4\.pc$')"
-          WEBKIT_PC="$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6\.0\.pc$')"
+          GTK_PC="$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4.pc$')"
+          WEBKIT_PC="$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6.0.pc$')"
 
           test -f "$GTK_PC"
           test -f "$WEBKIT_PC"
 
-          {
-            echo "PKG_CONFIG_PATH=$(dirname "$GTK_PC"):$(dirname "$WEBKIT_PC"):/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
-          } >> "$GITHUB_ENV"
+          GTK_PC_DIR="$(dirname "$GTK_PC")"
+          WEBKIT_PC_DIR="$(dirname "$WEBKIT_PC")"
 
+          echo "GTK pkg-config file: $GTK_PC"
+          echo "WebKitGTK pkg-config file: $WEBKIT_PC"
+
+          PKG_CONFIG_PATH="$GTK_PC_DIR:$WEBKIT_PC_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+          export PKG_CONFIG_PATH
+
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
+
+          pkg-config --list-all | grep -E '^(gtk4|webkitgtk-6\.0)\s'
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
-
-      - name: Build & package desktop app
-        if: matrix.platform == 'linux'
-        working-directory: app/salmon
-        env:
-          CGO_ENABLED: 1
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
-        run: |
-          pkg-config --modversion gtk4
-          pkg-config --modversion webkitgtk-6.0
-          wails3 package
+          pkg-config --cflags --libs gtk4 webkitgtk-6.0
 
 
       - name: Inspect Linux GUI dependencies
@@ -134,9 +132,6 @@ jobs:
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
           pkg-config --cflags --libs gtk4 webkitgtk-6.0
-
-
-
       # --- windows ---
       - name: Install NSIS
         if: matrix.platform == 'windows'
