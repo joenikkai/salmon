@@ -96,6 +96,31 @@ jobs:
           pkg-config --modversion webkitgtk-6.0
           pkg-config --cflags --libs gtk4 webkitgtk-6.0
 
+
+      - name: Inspect Linux GUI dependencies
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          dpkg -L libgtk-4-dev | grep -E '/gtk4\.pc$'
+          dpkg -L libwebkitgtk-6.0-dev | grep -E '/webkitgtk-6\.0\.pc$'
+
+          find /usr -name 'gtk4.pc' -o -name 'webkitgtk-6.0.pc'
+
+          pkg-config --variable pc_path pkg-config
+          env | grep '^PKG_CONFIG' || true
+
+
+      - name: Configure pkg-config
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          GTK_PC_DIR="$(dirname "$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4\.pc$')")"
+          WEBKIT_PC_DIR="$(dirname "$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6\.0\.pc$')")"
+
+          echo "PKG_CONFIG_PATH=$GTK_PC_DIR:$WEBKIT_PC_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+
       - name: Verify Linux GUI dependencies
         if: matrix.platform == 'linux'
         shell: bash
