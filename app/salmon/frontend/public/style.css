@@ -1,512 +1,368 @@
-/* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Copyright (C) 2026 Joseph Wangai Mwaniki */
-/* ============================================================================
-   Salmon — App theme
-   Layout tokens · Light & dark colour schemes · Adaptive background pattern
-   ----------------------------------------------------------------------------
-   Import once at the app root, e.g. in src/routes/+layout.svelte:
-       import "$lib/styles/theme.css";
-   ============================================================================ */
-
 :root {
-  color-scheme: light dark;
+    /* Neon-night design tokens. */
+    --ink: #06070f;            /* darkest base behind the image */
+    --text: #f4f6fb;
+    --muted: #9aa6c0;
+    --accent: #ff4d4d;         /* Wails red */
+    --accent-2: #ff2d72;       /* pink, used in gradients */
+    --glass: rgba(255, 255, 255, 0.05);
+    --glass-strong: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --radius: 11px;
+    --grad: linear-gradient(135deg, #ff5a4d 0%, #ff2d72 100%);
 
-  /* --------------------------------------------------------------------------
-     TYPOGRAPHY
-     -------------------------------------------------------------------------- */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+    /* Golden-ratio spacing scale (φ ≈ 1.618), used for the vertical rhythm. */
+    --s-1: 0.618rem;   /* φ⁻¹ */
+    --s-2: 1rem;
+    --s-3: 1.618rem;   /* φ   */
+    --s-4: 2.618rem;   /* φ²  */
+    --s-5: 4.236rem;   /* φ³  */
 
-  --text-2xs:   0.6875rem;  /* 11px */
-  --text-xs:    0.75rem;    /* 12px */
-  --text-sm:    0.8125rem;  /* 13px */
-  --text-base:  0.875rem;   /* 14px — app default */
-  --text-md:    0.9375rem;  /* 15px */
-  --text-lg:    1.0625rem;  /* 17px */
-  --text-xl:    1.25rem;    /* 20px */
-  --text-2xl:   1.5rem;     /* 24px */
-  --text-3xl:   1.875rem;   /* 30px */
-
-  --leading-tight:  1.2;
-  --leading-snug:   1.4;
-  --leading-base:   1.55;
-  --leading-loose:  1.7;
-
-  --tracking-tight:  -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide:   0.06em;
-
-  --weight-regular:   400;
-  --weight-medium:    500;
-  --weight-semibold:  600;
-  --weight-bold:      700;
-  --weight-extrabold: 800;
-
-  /* --------------------------------------------------------------------------
-     SPACING SCALE
-     -------------------------------------------------------------------------- */
-  --space-0:  0;
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-7:  28px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-
-  /* --------------------------------------------------------------------------
-     RADII
-     -------------------------------------------------------------------------- */
-  --radius-xs:   4px;
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   18px;
-  --radius-full: 999px;
-
-  /* --------------------------------------------------------------------------
-     LAYOUT SHELL
-     -------------------------------------------------------------------------- */
-  --sidebar-width:           248px;
-  --sidebar-width-collapsed: 64px;
-  --header-height:           52px;
-  --toolbar-height:          44px;
-  --statusbar-height:        28px;
-  --content-max:             1080px;
-  --panel-pad:               var(--space-5);
-
-  /* --------------------------------------------------------------------------
-     MOTION
-     -------------------------------------------------------------------------- */
-  --ease-out:      cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --duration-slow: 280ms;
-
-  /* --------------------------------------------------------------------------
-     Z-INDEX SCALE
-     -------------------------------------------------------------------------- */
-  --z-base:     0;
-  --z-sticky:   10;
-  --z-dropdown: 100;
-  --z-overlay:  200;
-  --z-modal:    300;
-  --z-toast:    400;
-
-  /* --------------------------------------------------------------------------
-     SALMON ACCENT — shared across both themes
-     -------------------------------------------------------------------------- */
-  --salmon-50:  #fff4f1;
-  --salmon-100: #ffe7e0;
-  --salmon-200: #ffd0c4;
-  --salmon-300: #ffb4a2;
-  --salmon-400: #ff9581;
-  --salmon-500: #fa8072;
-  --salmon-600: #ea5f4d;
-  --salmon-700: #c4442f;
-  --salmon-800: #9d3f31;
-  --salmon-900: #7d3a30;
-
-  /* ==========================================================================
-     LIGHT THEME (default)
-     ========================================================================== */
-  color-scheme: light;
-
-  /* Surfaces */
-  --bg:            #fbfaf9;
-  --bg-elevated:   #ffffff;
-  --surface-1:     #ffffff;
-  --surface-2:     #f7f6f4;
-  --surface-3:     #efedea;
-  --surface-inset: #f4f2f0;
-
-  /* Text */
-  --text:         #14171c;
-  --text-2:       #3d4653;
-  --text-muted:   #6b7480;
-  --text-subtle:  #8a929d;
-  --text-inverse: #ffffff;
-
-  /* Borders */
-  --border:        #e9e6e3;
-  --border-strong: #d9d5d1;
-  --border-subtle: #f0edeb;
-
-  /* Accent (salmon) */
-  --accent:        var(--salmon-600);
-  --accent-hover:  var(--salmon-700);
-  --accent-active: var(--salmon-800);
-  --accent-soft:   var(--salmon-50);
-  --accent-soft-2: var(--salmon-100);
-  --accent-ring:   rgba(250, 128, 114, 0.35);
-  --accent-on:     #ffffff;
-
-  /* Semantic */
-  --success:      #16a34a;
-  --success-soft: #f0fdf4;
-  --warning:      #d97706;
-  --warning-soft: #fffbeb;
-  --danger:       #dc2626;
-  --danger-soft:  #fef2f2;
-  --info:         #0284c7;
-  --info-soft:    #f0f9ff;
-
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(20, 23, 28, 0.05);
-  --shadow-sm: 0 1px 2px rgba(20, 23, 28, 0.06),
-               0 1px 3px rgba(20, 23, 28, 0.04);
-  --shadow-md: 0 4px 12px -4px rgba(20, 23, 28, 0.12),
-               0 2px 6px -2px rgba(20, 23, 28, 0.06);
-  --shadow-lg: 0 16px 40px -16px rgba(20, 23, 28, 0.22),
-               0 6px 16px -8px rgba(20, 23, 28, 0.12);
-  --shadow-accent: 0 10px 22px -10px rgba(234, 95, 77, 0.7);
-
-  /* Scrollbars */
-  --scrollbar-thumb:       rgba(20, 23, 28, 0.22);
-  --scrollbar-thumb-hover: rgba(20, 23, 28, 0.38);
-  --scrollbar-track:       transparent;
-
-  /* --------------------------------------------------------------------------
-     BACKGROUND PATTERN — LIGHT
-     Layer 1 + 2: two soft salmon glows anchored to the corners
-     Layer 3:     a fine dot grid, very low opacity
-     -------------------------------------------------------------------------- */
-  --bg-pattern-size: 24px 24px;
-
-  --bg-glow-1: radial-gradient(
-    1100px 560px at 100% -12%,
-    rgba(250, 128, 114, 0.10),
-    transparent 62%
-  );
-
-  --bg-glow-2: radial-gradient(
-    900px 480px at -8% 108%,
-    rgba(255, 180, 162, 0.09),
-    transparent 62%
-  );
-
-  --bg-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23fa8072' fill-opacity='0.11'/%3E%3C/svg%3E");
-
-  /* Optional: a fine grid instead of dots — swap in when you prefer lines */
-  --bg-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 0h32v32H0z' fill='none' stroke='%23fa8072' stroke-opacity='0.07'/%3E%3C/svg%3E");
-
-  /* Final layered value applied to <body> */
-  --bg-pattern: var(--bg-glow-1), var(--bg-glow-2), var(--bg-dots);
-}
-
-/* ============================================================================
-   DARK THEME — system preference
-   If the user has explicitly chosen light via [data-theme="light"], skip this.
-   ============================================================================ */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     color-scheme: dark;
-
-    /* Surfaces */
-    --bg:            #0d0f12;
-    --bg-elevated:   #14171c;
-    --surface-1:     #16191e;
-    --surface-2:     #1c2026;
-    --surface-3:     #232830;
-    --surface-inset: #101216;
-
-    /* Text */
-    --text:         #eef0f3;
-    --text-2:       #c7ccd4;
-    --text-muted:   #8a929d;
-    --text-subtle:  #6b7480;
-    --text-inverse: #0d0f12;
-
-    /* Borders */
-    --border:        #262b33;
-    --border-strong: #363d47;
-    --border-subtle: #1d2127;
-
-    /* Accent — lighter salmon for contrast on dark */
-    --accent:        var(--salmon-400);
-    --accent-hover:  var(--salmon-300);
-    --accent-active: var(--salmon-200);
-    --accent-soft:   rgba(250, 128, 114, 0.12);
-    --accent-soft-2: rgba(250, 128, 114, 0.20);
-    --accent-ring:   rgba(255, 149, 129, 0.42);
-    --accent-on:     #1a0d0a;
-
-    /* Semantic */
-    --success:      #4ade80;
-    --success-soft: rgba(74, 222, 128, 0.12);
-    --warning:      #fbbf24;
-    --warning-soft: rgba(251, 191, 36, 0.12);
-    --danger:       #f87171;
-    --danger-soft:  rgba(248, 113, 113, 0.12);
-    --info:         #38bdf8;
-    --info-soft:    rgba(56, 189, 248, 0.12);
-
-    /* Shadows — deeper, tighter */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.50),
-                 0 1px 3px rgba(0, 0, 0, 0.30);
-    --shadow-md: 0 4px 12px -4px rgba(0, 0, 0, 0.60),
-                 0 2px 6px -2px rgba(0, 0, 0, 0.40);
-    --shadow-lg: 0 16px 40px -16px rgba(0, 0, 0, 0.80),
-                 0 6px 16px -8px rgba(0, 0, 0, 0.50);
-    --shadow-accent: 0 10px 24px -10px rgba(250, 128, 114, 0.55);
-
-    /* Scrollbars */
-    --scrollbar-thumb:       rgba(255, 255, 255, 0.18);
-    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
-    --scrollbar-track:       transparent;
-
-    /* Background pattern — DARK */
-    --bg-glow-1: radial-gradient(
-      1100px 560px at 100% -12%,
-      rgba(250, 128, 114, 0.14),
-      transparent 60%
-    );
-
-    --bg-glow-2: radial-gradient(
-      900px 480px at -8% 108%,
-      rgba(196, 68, 47, 0.16),
-      transparent 60%
-    );
-
-    --bg-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ff9581' fill-opacity='0.07'/%3E%3C/svg%3E");
-
-    --bg-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 0h32v32H0z' fill='none' stroke='%23ff9581' stroke-opacity='0.05'/%3E%3C/svg%3E");
-
-    --bg-pattern: var(--bg-glow-1), var(--bg-glow-2), var(--bg-dots);
-  }
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
 }
 
-/* ============================================================================
-   DARK THEME — manual override via <html data-theme="dark">
-   Keep these values in sync with the block above.
-   ============================================================================ */
-[data-theme="dark"] {
-  color-scheme: dark;
+* { box-sizing: border-box; }
 
-  --bg:            #0d0f12;
-  --bg-elevated:   #14171c;
-  --surface-1:     #16191e;
-  --surface-2:     #1c2026;
-  --surface-3:     #232830;
-  --surface-inset: #101216;
-
-  --text:         #eef0f3;
-  --text-2:       #c7ccd4;
-  --text-muted:   #8a929d;
-  --text-subtle:  #6b7480;
-  --text-inverse: #0d0f12;
-
-  --border:        #262b33;
-  --border-strong: #363d47;
-  --border-subtle: #1d2127;
-
-  --accent:        var(--salmon-400);
-  --accent-hover:  var(--salmon-300);
-  --accent-active: var(--salmon-200);
-  --accent-soft:   rgba(250, 128, 114, 0.12);
-  --accent-soft-2: rgba(250, 128, 114, 0.20);
-  --accent-ring:   rgba(255, 149, 129, 0.42);
-  --accent-on:     #1a0d0a;
-
-  --success:      #4ade80;
-  --success-soft: rgba(74, 222, 128, 0.12);
-  --warning:      #fbbf24;
-  --warning-soft: rgba(251, 191, 36, 0.12);
-  --danger:       #f87171;
-  --danger-soft:  rgba(248, 113, 113, 0.12);
-  --info:         #38bdf8;
-  --info-soft:    rgba(56, 189, 248, 0.12);
-
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.50),
-               0 1px 3px rgba(0, 0, 0, 0.30);
-  --shadow-md: 0 4px 12px -4px rgba(0, 0, 0, 0.60),
-               0 2px 6px -2px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 16px 40px -16px rgba(0, 0, 0, 0.80),
-               0 6px 16px -8px rgba(0, 0, 0, 0.50);
-  --shadow-accent: 0 10px 24px -10px rgba(250, 128, 114, 0.55);
-
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.18);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
-  --scrollbar-track:       transparent;
-
-  --bg-glow-1: radial-gradient(
-    1100px 560px at 100% -12%,
-    rgba(250, 128, 114, 0.14),
-    transparent 60%
-  );
-
-  --bg-glow-2: radial-gradient(
-    900px 480px at -8% 108%,
-    rgba(196, 68, 47, 0.16),
-    transparent 60%
-  );
-
-  --bg-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ff9581' fill-opacity='0.07'/%3E%3C/svg%3E");
-
-  --bg-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 0h32v32H0z' fill='none' stroke='%23ff9581' stroke-opacity='0.05'/%3E%3C/svg%3E");
-
-  --bg-pattern: var(--bg-glow-1), var(--bg-glow-2), var(--bg-dots);
+html {
+    background: var(--ink);
 }
-
-/* ============================================================================
-   BASE — apply the theme to the document
-   ============================================================================ */
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+html, body {
+    margin: 0;
+    color: var(--text);
 }
-
-html,
 body {
-  height: 100%;
+    overflow-x: hidden;
+    /* Nothing in the chrome is selectable (it's an app, not a document); the
+       text input opts back in below. */
+    -webkit-user-select: none;
+    user-select: none;
+    /* Drag the window by its background. Interactive controls opt out with
+       --wails-draggable: no-drag (the property inherits). */
+    --wails-draggable: drag;
+}
+
+/* Framework mount nodes (#app / #root) shouldn't affect layout, so the
+   body flex centering applies directly to .container. */
+#app, #root { display: contents; }
+
+/* Interactive elements: clickable (not draggable) and, for the input, selectable. */
+.brand-mark, .brand-badge, .input-box, .btn, .footer-docs, .toast {
+    --wails-draggable: no-drag;
+}
+.input, input[type="text"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* ----- Background layer ----------------------------------------------------
+   A fixed, full-viewport layer rather than `background-attachment: fixed`
+   (which iOS WKWebView ignores / renders janky). A dark gradient is layered
+   over the photo so foreground text stays legible. On desktop the gradient is
+   weighted to the left, where the content sits. */
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(90deg, rgba(6, 7, 15, 0.94) 0%, rgba(6, 7, 15, 0.78) 32%,
+            rgba(6, 7, 15, 0.42) 64%, rgba(6, 7, 15, 0.30) 100%),
+        linear-gradient(0deg, rgba(6, 7, 15, 0.70) 0%, rgba(6, 7, 15, 0.10) 45%),
+        url("/bg-desktop.jpg") center / cover no-repeat;
 }
 
 body {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
-  color: var(--text);
-  background-color: var(--bg);
-
-  /* Layered background: two glows (no repeat) + a dot grid (repeat) */
-  background-image: var(--bg-pattern);
-  background-repeat: no-repeat, no-repeat, repeat;
-  background-size: auto, auto, var(--bg-pattern-size);
-  background-attachment: fixed;
-
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;             /* content area + footer pinned to the bottom */
+    /* Respect mobile safe areas (notch / home indicator). No bottom padding:
+       the footer sits flush at the bottom edge. */
+    /* Wider outer margins on the golden scale (φ² top/right, φ³ left). */
+    padding: max(var(--s-4), env(safe-area-inset-top)) max(var(--s-4), env(safe-area-inset-right))
+             0 max(var(--s-5), env(safe-area-inset-left));
 }
 
-/* Native scrollbars pick up the theme */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+.container {
+    flex: 1 0 auto;                     /* fill the space above the footer */
+    width: 100%;
+    max-width: 540px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;            /* vertically centre the content */
+    align-items: flex-start;
+    text-align: left;
 }
 
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* ----- Brand row ----------------------------------------------------------- */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    /* No top margin — the content block is vertically centred, so an extra top
+       margin would push everything (incl. the input) down. φ² gap below. */
+    margin-bottom: var(--s-4);
+}
+.brand-mark, .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+.brand-mark:hover, .brand-badge:hover {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 0 1em rgba(255, 77, 77, 0.45));
+}
+/* Logo heights sit on the golden scale (φ³ = 4.236rem). The Wails mark carries
+   its wordmark, so the badge is one golden step smaller (φ³ ÷ √φ) to keep the
+   pair visually balanced. */
+.brand-logo { height: var(--s-5); width: auto; display: block; object-fit: contain; }
+.brand-badge img { height: calc(var(--s-5) / 1.272); width: auto; display: block; object-fit: contain; }
+
+/* ----- Version badge ------------------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    margin-bottom: 1.1rem;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #ff7a8f;
+    background: rgba(255, 45, 114, 0.14);
+    border: 1px solid rgba(255, 45, 114, 0.32);
+    border-radius: 999px;
 }
 
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+/* ----- Heading ------------------------------------------------------------- */
+.title {
+    margin: 0 0 var(--s-2);
+    max-width: 100%;
+    font-size: clamp(2.5rem, 7.5vw, 3.7rem);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    overflow-wrap: break-word;
+}
+.title-accent {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
-*::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border: 2px solid transparent;
-  border-radius: var(--radius-full);
-  background-clip: content-box;
+/* The framework word ("JavaScript") crossfades to the entered name on Greet:
+   the outgoing word is taken out of flow and fades out while the incoming word
+   fades in over the same spot. */
+.title-name { position: relative; display: inline-block; }
+.title-name-text {
+    display: inline-block;
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 0.68, 0.2, 1);
+}
+.title-name-text.is-outgoing { position: absolute; left: 0; top: 0; }
+.title-name-text.is-entering { opacity: 0; transform: translateY(0.3em); }   /* rises in from below */
+.title-name-text.is-leaving { opacity: 0; transform: translateY(-0.3em); }   /* lifts out upward */
+
+.subtitle {
+    margin: 0 0 var(--s-5);
+    max-width: 32rem;
+    color: var(--muted);
+    font-size: clamp(1.05rem, 2.9vw, 1.2rem);
+    line-height: 1.55;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  background-clip: content-box;
+/* ----- Greet input + button ------------------------------------------------ */
+/* Input row and the card below it are sized down so they sit more compact
+   under the heading. */
+.greet { width: 62%; }
+
+/* Input font is pinned at 16px: iOS Safari/WKWebView zooms the page when an
+   input under 16px gains focus, so the whole control is sized around that.
+   Tight vertical padding keeps it ~36px tall, icon : control ≈ 1 : φ. */
+.input-box {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 4px 5px 4px 11px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    transition: border-color 0.2s ease;
+}
+.input-box:focus-within { border-color: rgba(255, 77, 77, 0.55); }
+
+.input-icon {
+    width: 23px;
+    height: 23px;
+    flex: 0 0 auto;
+    color: var(--muted);
 }
 
-::selection {
-  background: var(--accent-soft-2);
-  color: var(--text);
+.input,
+input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    padding: 5px 2px;
+    outline: none;
+}
+.input::placeholder { color: rgba(154, 166, 192, 0.7); }
+
+.btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: var(--grad);
+    color: #fff;
+    padding: 6px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(255, 45, 114, 0.35);
+    transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.btn svg { width: 17px; height: 17px; }
+.btn:hover { box-shadow: 0 8px 24px rgba(255, 45, 114, 0.5); }
+.btn:active { transform: scale(0.97); }
+
+/* ----- Toast (the reply from Go) ------------------------------------------- */
+/* Fixed overlay near the bottom, so showing the greeting never reflows the page.
+   The Go-blue badge makes it obvious the string was produced by the Go backend. */
+.toast {
+    position: fixed;
+    /* Top-right with an equal golden-ratio inset (φ = 1.618rem) on both edges,
+       clear of the macOS traffic lights (which are on the left). Falls back to
+       the notch / safe area when larger. Drops in from just above. */
+    top: max(var(--s-3), env(safe-area-inset-top));
+    right: max(var(--s-3), env(safe-area-inset-right));
+    z-index: 20;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    max-width: min(86vw, 420px);
+    padding: 11px 16px;
+    background: rgba(13, 17, 28, 0.72);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.45;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-16px);
+    transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+/* Muted, on-palette label so it's clear the string came from the Go backend. */
+.toast-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.toast-msg { min-width: 0; }
+
+/* ----- Footer -------------------------------------------------------------- */
+/* Thin bar pinned to the bottom: version far-left, live clock centered. */
+.footer-divider {
+    width: 100%;
+    height: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0;
+}
+.footer {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;   /* version | clock | spacer */
+    align-items: center;
+    width: 100%;
+    /* keep the bar off the very edge and clear of the home indicator */
+    padding: 11px max(0.5rem, env(safe-area-inset-right))
+             max(11px, env(safe-area-inset-bottom)) 0;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+.footer-version {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+.footer-time {
+    justify-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.footer-time svg { width: 19px; height: 19px; opacity: 0.85; }
+.footer-docs {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--muted);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+.footer-docs:hover { color: var(--text); }
+.footer-docs svg { width: 17px; height: 17px; }
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
 }
 
-/* ============================================================================
-   OPTIONAL — app-shell helpers that consume the layout tokens
-   Use these as-is, or ignore and wire the tokens into your own components.
-   ============================================================================ */
-
-.app-shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: var(--header-height) 1fr;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.app-header {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-4);
-  height: var(--header-height);
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  backdrop-filter: saturate(160%) blur(12px);
-  -webkit-backdrop-filter: saturate(160%) blur(12px);
-  border-bottom: 1px solid var(--border);
-}
-
-.app-sidebar {
-  overflow-y: auto;
-  padding: var(--space-3);
-  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
-  border-right: 1px solid var(--border);
-}
-
-.app-content {
-  overflow-y: auto;
-  padding: var(--panel-pad);
-}
-
-.app-content > * {
-  max-width: var(--content-max);
-  margin-inline: auto;
-}
-
-/* A panel that wants the dots only — no corner glows */
-.panel {
-  background-color: var(--surface-1);
-  background-image: var(--bg-dots);
-  background-size: var(--bg-pattern-size);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-5);
-}
-
-/* ============================================================================
-   PREFERENCES
-   ============================================================================ */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Strip the decorative pattern for users who need higher contrast */
-@media (prefers-contrast: more) {
-  :root {
-    --bg-pattern: none;
-    --bg-dots: none;
-    --bg-grid: none;
-    --border: var(--border-strong);
-  }
-}
-
-/* Print — flatten everything */
-@media print {
-  body {
-    background: #fff;
-    background-image: none;
-    color: #000;
-  }
+/* ----- Mobile -------------------------------------------------------------- */
+@media (max-width: 640px) {
+    .bg {
+        background:
+            linear-gradient(0deg, rgba(6, 7, 15, 0.92) 0%, rgba(6, 7, 15, 0.55) 40%,
+                rgba(6, 7, 15, 0.45) 100%),
+            url("/bg-mobile.jpg") center / cover no-repeat;
+    }
+    .container { align-items: center; text-align: center; margin: 0 auto; }
+    /* Stack the title onto two lines ("Wails +" / "Javascript") like the target. */
+    .title-accent { display: block; }
+    .subtitle { margin-left: auto; margin-right: auto; }
+    /* A touch more width back on small screens so the input stays usable. */
+    .greet { width: 86%; }
+    /* Trim the surround on a phone, but keep the input at 16px (iOS focus-zoom
+       guard) — only the padding/button/icon shrink, not the field's text. */
+    .input-box { padding: 3px 4px 3px 10px; gap: 6px; }
+    .input-icon { width: 21px; height: 21px; }
+    .input { font-size: 16px; padding: 4px 2px; }
+    .btn { padding: 5px 13px; font-size: 14px; gap: 5px; }
+    .btn svg { width: 16px; height: 16px; }
+    /* Three items (version / clock / docs) share a narrow row — shrink to fit. */
+    .footer { font-size: 11px; gap: 4px; }
+    .footer-time { gap: 5px; }
+    .footer-time svg { width: 13px; height: 13px; }
 }
