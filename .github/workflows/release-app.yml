@@ -58,9 +58,14 @@ jobs:
       # ----- Linux: GTK4 + WebKitGTK 6.0 (Wails v3 default) -----
       - name: Install system dependencies (Linux only)
         if: matrix.platform == 'linux'
+        shell: bash
         run: |
+          set -euxo pipefail
+
+          sudo add-apt-repository --yes universe
           sudo apt-get update
-          sudo apt-get install -y \
+
+          sudo apt-get install --yes \
             build-essential \
             pkg-config \
             libgtk-4-dev \
@@ -69,9 +74,22 @@ jobs:
             rpm \
             fakeroot
 
+          # Confirm that the installed packages expose the expected pkg-config files.
+          dpkg -L libgtk-4-dev | grep '/gtk4.pc$'
+          dpkg -L libwebkitgtk-6.0-dev | grep '/webkitgtk-6.0.pc$'
+
+            - name: Verify Linux GUI dependencies
+              if: matrix.platform == 'linux'
+              run: |
+                pkg-config --modversion gtk4
+                pkg-config --modversion webkitgtk-6.0
+                pkg-config --cflags --libs gtk4 webkitgtk-6.0
+
       - name: Verify Linux GUI dependencies
         if: matrix.platform == 'linux'
+        shell: bash
         run: |
+          set -euxo pipefail
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
           pkg-config --cflags --libs gtk4 webkitgtk-6.0
