@@ -78,13 +78,6 @@ jobs:
           dpkg -L libgtk-4-dev | grep '/gtk4.pc$'
           dpkg -L libwebkitgtk-6.0-dev | grep '/webkitgtk-6.0.pc$'
 
-            - name: Verify Linux GUI dependencies
-              if: matrix.platform == 'linux'
-              run: |
-                pkg-config --modversion gtk4
-                pkg-config --modversion webkitgtk-6.0
-                pkg-config --cflags --libs gtk4 webkitgtk-6.0
-
       - name: Verify Linux GUI dependencies
         if: matrix.platform == 'linux'
         shell: bash
@@ -93,7 +86,6 @@ jobs:
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
           pkg-config --cflags --libs gtk4 webkitgtk-6.0
-
 
       - name: Install NSIS
         if: matrix.platform == 'windows'
