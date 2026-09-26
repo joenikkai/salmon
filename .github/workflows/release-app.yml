@@ -15,24 +15,25 @@ env:
 
 jobs:
   # ------------------------------------------------------------------
-  # Desktop builds: Windows, Linux, macOS
+  # Desktop builds: Windows, Linux (Fedora), macOS
   # ------------------------------------------------------------------
   build-desktop:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-24.04
-            platform: linux
-            artifact_name: linux-packages
           - os: windows-latest
             platform: windows
             artifact_name: windows-installer
           - os: macos-latest
             platform: darwin
             artifact_name: macos-app
+          - container: fedora:44
+            platform: linux
+            artifact_name: linux-packages
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
+    container: ${{ matrix.container || null }}
 
     steps:
       - name: Checkout repository
@@ -55,39 +56,23 @@ jobs:
         with:
           version: 9
 
-      # --- Linux: Install and configure system dependencies ---
-      - name: Install system dependencies (Linux only)
+      # --- Linux (Fedora): Install system dependencies ---
+      - name: Install system dependencies (Fedora Linux)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euxo pipefail
 
-          sudo add-apt-repository --yes universe
-          sudo apt-get update
+          dnf install -y \
+            gcc \
+            gcc-c++ \
+            pkgconf-pkg-config \
+            gtk4-devel \
+            webkitgtk6-devel \
+            libayatana-appindicator-devel \
+            rpm-build \
+            fakeroot
 
-          sudo apt-get install --yes \
-            build-essential \
-            pkg-config \
-            libgtk-4-dev \
-            libwebkitgtk-6.0-dev \
-            libayatana-appindicator3-dev \
-            rpm \
-            fakeroot \
-            libwebkitgtk-6.0
-
-          GTK_PC="$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4.pc$')"
-          WEBKIT_PC="$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6.0.pc$')"
-
-          test -f "$GTK_PC"
-          test -f "$WEBKIT_PC"
-
-          GTK_PC_DIR="$(dirname "$GTK_PC")"
-          WEBKIT_PC_DIR="$(dirname "$WEBKIT_PC")"
-
-          PKG_CONFIG_PATH="$GTK_PC_DIR:$WEBKIT_PC_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
-
-          pkg-config --list-all | grep -E '^(gtk4|webkitgtk-6\.0)\s'
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
 
@@ -129,7 +114,7 @@ jobs:
           CGO_ENABLED: 1
 
       # --- Linux: Bundle WebKit libraries into AppImage ---
-      - name: Bundle WebKit libraries in AppImage (Linux only)
+      - name: Bundle WebKit libraries in AppImage (Fedora Linux only)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
@@ -141,29 +126,28 @@ jobs:
           if [ -z "$APPDIR" ]; then
             echo "AppDir not found, attempting to create structure..."
             APPDIR="app/salmon/bin/Salmon.AppDir"
-            mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
+            mkdir -p "$APPDIR/usr/lib64"
           fi
 
           echo "Using AppDir: $APPDIR"
 
-          # Copy runtime WebKit libraries
-          mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
+          # Copy runtime WebKit libraries (Fedora uses lib64)
+          mkdir -p "$APPDIR/usr/lib64"
 
           # Copy main WebKit libraries
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libwebkitgtk-6.0.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libgtk-4.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libgdk-4.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libglib-2.0.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libcairo.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
-          sudo cp -v /usr/lib/x86_64-linux-gnu/libpango*.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          cp -v /usr/lib64/libwebkitgtk-6.0.so* "$APPDIR/usr/lib64/" || true
+          cp -v /usr/lib64/libgtk-4.so* "$APPDIR/usr/lib64/" || true
+          cp -v /usr/lib64/libgdk-4.so* "$APPDIR/usr/lib64/" || true
+          cp -v /usr/lib64/libglib-2.0.so* "$APPDIR/usr/lib64/" || true
+          cp -v /usr/lib64/libcairo.so* "$APPDIR/usr/lib64/" || true
+          cp -v /usr/lib64/libpango*.so* "$APPDIR/usr/lib64/" || true
 
           # Copy WebKit subprocess (critical for WebKitGTK to work)
-          sudo mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu/webkitgtk-6.0"
-          sudo cp -rv /usr/lib/x86_64-linux-gnu/webkitgtk-6.0/* "$APPDIR/usr/lib/x86_64-linux-gnu/webkitgtk-6.0/" || true
+          mkdir -p "$APPDIR/usr/lib64/webkitgtk-6.0"
+          cp -rv /usr/lib64/webkitgtk-6.0/* "$APPDIR/usr/lib64/webkitgtk-6.0/" || true
 
-          # Set library path in AppImage environment
           echo "Bundling complete"
-          ls -la "$APPDIR/usr/lib/x86_64-linux-gnu/" | head -20
+          ls -la "$APPDIR/usr/lib64/" | head -20
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
@@ -175,10 +159,10 @@ jobs:
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # Android: AAB (Play Store) + APK (sideload)
+  # Android: AAB (Play Store) + APK (sideload) - macOS
   # ------------------------------------------------------------------
   build-android:
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
@@ -315,9 +299,9 @@ jobs:
   # Release
   # ------------------------------------------------------------------
   release:
-    # needs: [build-desktop, build-android, build-ios]
-    needs: [build-desktop]
+    needs: [build-desktop, build-android, build-ios]
     runs-on: ubuntu-24.04
+    if: always() && (needs.build-desktop.result == 'success' || needs.build-android.result == 'success' || needs.build-ios.result == 'success')
 
     steps:
       - name: Download all artifacts
