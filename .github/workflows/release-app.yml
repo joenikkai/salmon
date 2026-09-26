@@ -121,6 +121,28 @@ jobs:
         env:
           CGO_ENABLED: 1
 
+      - name: Package macOS app as zip
+        if: matrix.platform == 'darwin'
+        working-directory: app/salmon/bin
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          APP_BUNDLE=$(find . -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "::error::No .app bundle found in $(pwd)"
+            ls -la
+            exit 1
+          fi
+
+          APP_NAME=$(basename "$APP_BUNDLE" .app)
+          echo "Zipping $APP_BUNDLE -> ${APP_NAME}.zip"
+
+          # ditto preserves code signature, xattrs and resource forks
+          ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "${APP_NAME}.zip"
+
+          ls -la
+
       # --- Linux: Bundle WebKit libraries into AppImage ---
       - name: Bundle WebKit libraries in AppImage (Fedora Linux only)
         if: matrix.platform == 'linux'
