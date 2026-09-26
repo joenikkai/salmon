@@ -1,7 +1,7 @@
 <script>
     import { Sitename } from "$lib";
-
-    const CONTACT_EMAIL = 'joewamwaniki@gmail.com';
+    import { SALMON_MAINTAINERS_EMAIL } from "$lib/data";
+    const CONTACT_EMAIL = SALMON_MAINTAINERS_EMAIL;
     // Loads your ./LICENSE file as a raw string (Vite `?raw` import).
     // Adjust the relative path if this route lives elsewhere.
     import licenseText from "../../../LICENSE?raw";

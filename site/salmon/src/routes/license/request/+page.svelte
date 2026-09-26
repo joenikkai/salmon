@@ -1,6 +1,6 @@
  <script>
     import { Sitename } from "$lib";
-    import { PUBLIC_SALMON_MAINTAINERS_EMAIL } from "$env/static/public";
+    import { SALMON_MAINTAINERS_EMAIL } from "$lib/data";
 
     const year = new Date().getFullYear();
 
@@ -60,7 +60,7 @@
             await new Promise((resolve) => setTimeout(resolve, 700));
             submitted = true;
         } catch (err) {
-            error = `Something went wrong sending your request. Please email ${PUBLIC_SALMON_MAINTAINERS_EMAIL} instead.`;
+            error = `Something went wrong sending your request. Please email ${SALMON_MAINTAINERS_EMAIL} instead.`;
         } finally {
             sending = false;
         }
@@ -146,7 +146,7 @@
                 </div>
                 <div class="meta-item">
                     <span class="meta-label">Prefer email?</span>
-                    <span class="meta-value mono">{PUBLIC_SALMON_MAINTAINERS_EMAIL}</span>
+                    <span class="meta-value mono">{SALMON_MAINTAINERS_EMAIL}</span>
                 </div>
             </div>
         </div>
@@ -175,7 +175,7 @@
 
                         <p class="success-note">
                             Need it sooner, or want to add something? Reply to
-                            <a href="mailto:{PUBLIC_SALMON_MAINTAINERS_EMAIL}">{PUBLIC_SALMON_MAINTAINERS_EMAIL}</a>
+                            <a href="mailto:{SALMON_MAINTAINERS_EMAIL}">{SALMON_MAINTAINERS_EMAIL}</a>
                             and mention your project name.
                         </p>
 
@@ -369,8 +369,8 @@
                     <p class="aside-note">
                         Skip the form and write to us directly — a human reads every message.
                     </p>
-                    <a class="btn btn-outline" href="mailto:{PUBLIC_SALMON_MAINTAINERS_EMAIL}">
-                        {PUBLIC_SALMON_MAINTAINERS_EMAIL}
+                    <a class="btn btn-outline" href="mailto:{SALMON_MAINTAINERS_EMAIL}">
+                        {SALMON_MAINTAINERS_EMAIL}
                     </a>
                 </div>
             </aside>
