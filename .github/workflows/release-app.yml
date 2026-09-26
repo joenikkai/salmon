@@ -80,7 +80,8 @@ jobs:
             webkitgtk6.0-devel \
             libayatana-appindicator-gtk3-devel \
             rpm-build \
-            fakeroot
+            fakeroot \
+            xorg-x11-server-Xvfb
 
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
@@ -118,7 +119,19 @@ jobs:
 
       - name: Build & package desktop app
         working-directory: app/salmon
-        run: wails3 package
+        run: |
+          set -euxo pipefail
+          # Create a writable XDG_RUNTIME_DIR for WebKit/Wayland socket needs
+          export XDG_RUNTIME_DIR="${RUNNER_TEMP}/xdg-runtime"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+
+          # Run wails3 package under Xvfb so WebKit can initialize
+          # Optional: set WEBKIT_DISABLE_SANDBOX=1 if sandbox/seccomp blocks WebKitWebProcess in container
+          export WEBKIT_DISABLE_SANDBOX=1 || true
+
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
+            wails3 package
         env:
           CGO_ENABLED: 1
 
