@@ -16,7 +16,13 @@
   }
 
   const GITHUB_REPO = 'joenikkai/salmon';
-  const PLATFORMS = ['Windows', 'macOS', 'Linux', 'Android', 'iOS'] as const;
+  const PLATFORMS = [
+    'Windows',
+    'macOS',
+    'Linux',
+    // 'iOS',
+    'Android'
+  ] as const;
   type Platform = (typeof PLATFORMS)[number];
 
   const navLinks = [
