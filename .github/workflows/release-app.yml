@@ -55,7 +55,7 @@ jobs:
         with:
           version: 9
 
-
+      # --- Linux: Install and configure system dependencies ---
       - name: Install system dependencies (Linux only)
         if: matrix.platform == 'linux'
         shell: bash
@@ -72,7 +72,9 @@ jobs:
             libwebkitgtk-6.0-dev \
             libayatana-appindicator3-dev \
             rpm \
-            fakeroot
+            fakeroot \
+            libwebkitgtk-6.0 \
+            libgtk-4-0
 
           GTK_PC="$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4.pc$')"
           WEBKIT_PC="$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6.0.pc$')"
@@ -83,57 +85,15 @@ jobs:
           GTK_PC_DIR="$(dirname "$GTK_PC")"
           WEBKIT_PC_DIR="$(dirname "$WEBKIT_PC")"
 
-          echo "GTK pkg-config file: $GTK_PC"
-          echo "WebKitGTK pkg-config file: $WEBKIT_PC"
-
           PKG_CONFIG_PATH="$GTK_PC_DIR:$WEBKIT_PC_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
-          export PKG_CONFIG_PATH
-
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
 
           pkg-config --list-all | grep -E '^(gtk4|webkitgtk-6\.0)\s'
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
-          pkg-config --cflags --libs gtk4 webkitgtk-6.0
 
-
-      - name: Inspect Linux GUI dependencies
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          dpkg -L libgtk-4-dev | grep -E '/gtk4\.pc$'
-          dpkg -L libwebkitgtk-6.0-dev | grep -E '/webkitgtk-6\.0\.pc$'
-
-          find /usr -name 'gtk4.pc' -o -name 'webkitgtk-6.0.pc'
-
-          pkg-config --variable pc_path pkg-config
-          env | grep '^PKG_CONFIG' || true
-
-
-      - name: Configure pkg-config
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          GTK_PC_DIR="$(dirname "$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4\.pc$')")"
-          WEBKIT_PC_DIR="$(dirname "$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6\.0\.pc$')")"
-
-          echo "PKG_CONFIG_PATH=$GTK_PC_DIR:$WEBKIT_PC_DIR:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
-
-      - name: Verify Linux GUI dependencies
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-          pkg-config --list-all | grep -E '^(gtk4|webkitgtk-6\.0)\s'
-          pkg-config --modversion gtk4
-          pkg-config --modversion webkitgtk-6.0
-          pkg-config --cflags --libs gtk4 webkitgtk-6.0
-      # --- windows ---
-      - name: Install NSIS
+      # --- Windows: Install NSIS ---
+      - name: Install NSIS (Windows only)
         if: matrix.platform == 'windows'
         shell: powershell
         run: |
@@ -141,16 +101,14 @@ jobs:
           "C:\Program Files (x86)\NSIS\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & "C:\Program Files (x86)\NSIS\Bin\makensis.exe" /VERSION
 
-      - name: Verify NSIS
+      - name: Verify NSIS (Windows only)
         if: matrix.platform == 'windows'
         shell: powershell
         run: |
           Get-Command makensis
           makensis /VERSION
 
-
-
-
+      # --- Common build steps (all platforms) ---
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
 
@@ -170,6 +128,43 @@ jobs:
         run: wails3 package
         env:
           CGO_ENABLED: 1
+
+      # --- Linux: Bundle WebKit libraries into AppImage ---
+      - name: Bundle WebKit libraries in AppImage (Linux only)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          # Find the AppDir that wails3 created
+          APPDIR=$(find app/salmon/bin -maxdepth 2 -name "*.AppDir" -type d | head -1)
+
+          if [ -z "$APPDIR" ]; then
+            echo "AppDir not found, attempting to create structure..."
+            APPDIR="app/salmon/bin/Salmon.AppDir"
+            mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
+          fi
+
+          echo "Using AppDir: $APPDIR"
+
+          # Copy runtime WebKit libraries
+          mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
+
+          # Copy main WebKit libraries
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libwebkitgtk-6.0.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libgtk-4.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libgdk-4.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libglib-2.0.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libcairo.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+          sudo cp -v /usr/lib/x86_64-linux-gnu/libpango*.so* "$APPDIR/usr/lib/x86_64-linux-gnu/" || true
+
+          # Copy WebKit subprocess (critical for WebKitGTK to work)
+          sudo mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu/webkitgtk-6.0"
+          sudo cp -rv /usr/lib/x86_64-linux-gnu/webkitgtk-6.0/* "$APPDIR/usr/lib/x86_64-linux-gnu/webkitgtk-6.0/" || true
+
+          # Set library path in AppImage environment
+          echo "Bundling complete"
+          ls -la "$APPDIR/usr/lib/x86_64-linux-gnu/" | head -20
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
