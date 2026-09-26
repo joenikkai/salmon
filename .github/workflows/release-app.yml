@@ -36,6 +36,14 @@ jobs:
     container: ${{ matrix.container || null }}
 
     steps:
+
+      # Install Git in container BEFORE checkout
+      - name: Install Git (Fedora Linux only)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: dnf install -y git
+
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
