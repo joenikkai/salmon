@@ -73,8 +73,7 @@ jobs:
             libayatana-appindicator3-dev \
             rpm \
             fakeroot \
-            libwebkitgtk-6.0 \
-            libgtk-4-0
+            libwebkitgtk-6.0
 
           GTK_PC="$(dpkg -L libgtk-4-dev | grep -m1 '/gtk4.pc$')"
           WEBKIT_PC="$(dpkg -L libwebkitgtk-6.0-dev | grep -m1 '/webkitgtk-6.0.pc$')"
