@@ -5,11 +5,11 @@
 	"info": {
 		"0000": {
 			"ProductVersion": "0.1.0",
-			"CompanyName": "My Company",
+			"CompanyName": "Joseph Mwaniki",
 			"FileDescription": "A salmon application",
-			"LegalCopyright": "© 2026, My Company",
-			"ProductName": "My Product",
-			"Comments": "This is a comment"
+			"LegalCopyright": "© 2026, Joseph Waniki",
+			"ProductName": "salmon",
+			"Comments": "Salmon is a free database management solution for SME's"
 		}
 	}
 }
