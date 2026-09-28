@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
   import {onMount} from 'svelte';
   import {Events, WML} from "@wailsio/runtime";
   import {GreetService} from "../bindings/changeme";
@@ -103,4 +103,4 @@
 
 <style>
   /* Put your standard CSS here */
-</style>
+</style> -->

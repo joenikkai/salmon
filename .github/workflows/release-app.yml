@@ -12,6 +12,7 @@ permissions:
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
   WAILS_VERSION: "v3.0.0-beta.20"   # pinned for reproducible builds
+  GO_VERSION: "1.27"                # unified Go version for all jobs
 
 jobs:
   # ------------------------------------------------------------------
@@ -37,7 +38,6 @@ jobs:
     container: ${{ matrix.container || null }}
 
     steps:
-      # Install Git in container BEFORE checkout
       - name: Install Git (Fedora Linux only)
         if: matrix.platform == 'linux'
         shell: bash
@@ -48,10 +48,11 @@ jobs:
         with:
           submodules: recursive
 
+      # FIX: unified Go version and correct cache path
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.27'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: app/salmon/go.sum
 
       - name: Setup Node.js
@@ -64,27 +65,19 @@ jobs:
         with:
           version: 9
 
-      # --- Linux (Fedora): Install system dependencies ---
       - name: Install system dependencies (Fedora Linux)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euxo pipefail
           dnf install -y \
-            gcc \
-            gcc-c++ \
-            pkgconf-pkg-config \
-            gtk4-devel \
-            webkitgtk6.0-devel \
+            gcc gcc-c++ pkgconf-pkg-config \
+            gtk4-devel webkitgtk6.0-devel \
             libayatana-appindicator-gtk3-devel \
-            rpm-build \
-            fakeroot \
-            xorg-x11-server-Xvfb \
-            curl
+            rpm-build fakeroot xorg-x11-server-Xvfb curl
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
 
-      # --- Windows: Install NSIS ---
       - name: Install NSIS (Windows only)
         if: matrix.platform == 'windows'
         shell: powershell
@@ -100,7 +93,6 @@ jobs:
           Get-Command makensis
           makensis /VERSION
 
-      # --- Common build steps (all platforms) ---
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
 
@@ -115,7 +107,6 @@ jobs:
         working-directory: app/salmon/frontend
         run: pnpm run build
 
-      # --- Build & package: Windows / macOS ---
       - name: Build & package (Windows / macOS)
         if: matrix.platform != 'linux'
         working-directory: app/salmon
@@ -123,7 +114,6 @@ jobs:
         env:
           CGO_ENABLED: 1
 
-      # --- Build & package: Linux (under Xvfb) ---
       - name: Build & package (Linux)
         if: matrix.platform == 'linux'
         working-directory: app/salmon
@@ -139,7 +129,6 @@ jobs:
         env:
           CGO_ENABLED: 1
 
-      # --- macOS: create DMG (matches release glob) ---
       - name: Create DMG (macOS only)
         if: matrix.platform == 'darwin'
         working-directory: app/salmon/bin
@@ -161,16 +150,12 @@ jobs:
             "$DMG_NAME"
           ls -lah *.dmg
 
-      # --- Linux: Bundle WebKit libraries into the AppImage ---
-      # wails3 package already produces a finished .AppImage. We extract it,
-      # inject the WebKit/GTK runtime libs, then repack it with appimagetool.
       - name: Bundle WebKit libraries into AppImage (Fedora Linux only)
         if: matrix.platform == 'linux'
         shell: bash
         working-directory: app/salmon
         run: |
           set -euxo pipefail
-
           APPIMAGE=$(find bin -maxdepth 1 -name "*.AppImage" -type f | head -1)
           if [ -z "$APPIMAGE" ]; then
             echo "::error::AppImage not found"
@@ -180,17 +165,13 @@ jobs:
           APPIMAGE_ABS="$(pwd)/$APPIMAGE"
           APPIMAGE_NAME="$(basename "$APPIMAGE")"
           APPIMAGE_DIR="$(dirname "$APPIMAGE_ABS")"
-
           WORK="$(mktemp -d)"
           cd "$WORK"
-
           echo "Extracting $APPIMAGE_ABS"
           chmod +x "$APPIMAGE_ABS"
           "$APPIMAGE_ABS" --appimage-extract
           ROOT="$WORK/squashfs-root"
-
           mkdir -p "$ROOT/usr/lib64/webkitgtk-6.0"
-
           cp -v /usr/lib64/libwebkitgtk-6.0.so* "$ROOT/usr/lib64/" || true
           cp -v /usr/lib64/libgtk-4.so*       "$ROOT/usr/lib64/" || true
           cp -v /usr/lib64/libgdk-4.so*       "$ROOT/usr/lib64/" || true
@@ -198,26 +179,19 @@ jobs:
           cp -v /usr/lib64/libcairo.so*       "$ROOT/usr/lib64/" || true
           cp -v /usr/lib64/libpango*.so*      "$ROOT/usr/lib64/" || true
           cp -rv /usr/lib64/webkitgtk-6.0/*   "$ROOT/usr/lib64/webkitgtk-6.0/" || true
-
-          # Fetch appimagetool and extract it (avoids FUSE requirement)
           curl -fsSL -o "$WORK/appimagetool" \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x "$WORK/appimagetool"
-
           mkdir -p "$WORK/tool"
           cd "$WORK/tool"
           "$WORK/appimagetool" --appimage-extract
           AIT="$WORK/tool/squashfs-root/AppRun"
-
-          # Repack, overwriting the original AppImage
           OUTPUT="$APPIMAGE_DIR/$APPIMAGE_NAME"
           rm -f "$OUTPUT"
           ARCH=x86_64 "$AIT" "$ROOT" "$OUTPUT"
-
           echo "Repacked AppImage: $OUTPUT"
           ls -lah "$APPIMAGE_DIR"
 
-      # --- Upload desktop artifacts (required files → fail if missing) ---
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -243,10 +217,11 @@ jobs:
         with:
           submodules: recursive
 
+      # FIX: unified Go version and correct cache path
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: app/salmon/go.sum
 
       - name: Setup Node.js
@@ -259,8 +234,9 @@ jobs:
         with:
           version: 9
 
+      # FIX: update to v5 to remove deprecation warning
       - name: Setup Java (JDK 21)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -314,10 +290,12 @@ jobs:
         with:
           submodules: recursive
 
+      # FIX: unified Go version and correct cache path
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: app/salmon/go.sum
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -328,6 +306,12 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      # FIX: select Xcode and accept license for cgo / iOS SDK
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -license accept
 
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
@@ -373,7 +357,6 @@ jobs:
   release:
     needs: [build-desktop, build-android, build-ios]
     runs-on: ubuntu-24.04
-    # Both desktop and Android are required; iOS is optional.
     if: |
       always() &&
       needs.build-desktop.result == 'success' &&
