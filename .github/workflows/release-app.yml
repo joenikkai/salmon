@@ -204,10 +204,10 @@ jobs:
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # Android: AAB (Play Store) + APK (sideload)
+  # Android: AAB (Play Store) + APK (sideload) — now on macOS
   # ------------------------------------------------------------------
   build-android:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
