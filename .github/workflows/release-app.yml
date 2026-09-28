@@ -79,7 +79,8 @@ jobs:
             libayatana-appindicator-gtk3-devel \
             rpm-build \
             fakeroot \
-            xorg-x11-server-Xvfb
+            xorg-x11-server-Xvfb \
+            curl
           pkg-config --modversion gtk4
           pkg-config --modversion webkitgtk-6.0
 
@@ -160,34 +161,61 @@ jobs:
             "$DMG_NAME"
           ls -lah *.dmg
 
-      # --- Linux: Bundle WebKit libraries into AppDir ---
-      # NOTE: wails3 package already created the AppImage. This step updates the AppDir
-      # but does NOT rebuild the AppImage. To truly bundle WebKit, you must run this
-      # before the final AppImage creation (e.g. via a custom wails3 task).
-      - name: Bundle WebKit libraries in AppImage (Fedora Linux only)
+      # --- Linux: Bundle WebKit libraries into the AppImage ---
+      # wails3 package already produces a finished .AppImage. We extract it,
+      # inject the WebKit/GTK runtime libs, then repack it with appimagetool.
+      - name: Bundle WebKit libraries into AppImage (Fedora Linux only)
         if: matrix.platform == 'linux'
         shell: bash
         working-directory: app/salmon
         run: |
           set -euxo pipefail
-          APPDIR=$(find bin -maxdepth 2 -name "*.AppDir" -type d | head -1)
-          if [ -z "$APPDIR" ]; then
-            echo "::error::AppDir not found"
+
+          APPIMAGE=$(find bin -maxdepth 1 -name "*.AppImage" -type f | head -1)
+          if [ -z "$APPIMAGE" ]; then
+            echo "::error::AppImage not found"
             ls -la bin/
             exit 1
           fi
-          echo "Using AppDir: $APPDIR"
-          mkdir -p "$APPDIR/usr/lib64"
-          cp -v /usr/lib64/libwebkitgtk-6.0.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libgtk-4.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libgdk-4.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libglib-2.0.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libcairo.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libpango*.so* "$APPDIR/usr/lib64/" || true
-          mkdir -p "$APPDIR/usr/lib64/webkitgtk-6.0"
-          cp -rv /usr/lib64/webkitgtk-6.0/* "$APPDIR/usr/lib64/webkitgtk-6.0/" || true
-          echo "Bundling complete"
-          ls -la "$APPDIR/usr/lib64/" | head -20
+          APPIMAGE_ABS="$(pwd)/$APPIMAGE"
+          APPIMAGE_NAME="$(basename "$APPIMAGE")"
+          APPIMAGE_DIR="$(dirname "$APPIMAGE_ABS")"
+
+          WORK="$(mktemp -d)"
+          cd "$WORK"
+
+          echo "Extracting $APPIMAGE_ABS"
+          chmod +x "$APPIMAGE_ABS"
+          "$APPIMAGE_ABS" --appimage-extract
+          ROOT="$WORK/squashfs-root"
+
+          mkdir -p "$ROOT/usr/lib64/webkitgtk-6.0"
+
+          cp -v /usr/lib64/libwebkitgtk-6.0.so* "$ROOT/usr/lib64/" || true
+          cp -v /usr/lib64/libgtk-4.so*       "$ROOT/usr/lib64/" || true
+          cp -v /usr/lib64/libgdk-4.so*       "$ROOT/usr/lib64/" || true
+          cp -v /usr/lib64/libglib-2.0.so*    "$ROOT/usr/lib64/" || true
+          cp -v /usr/lib64/libcairo.so*       "$ROOT/usr/lib64/" || true
+          cp -v /usr/lib64/libpango*.so*      "$ROOT/usr/lib64/" || true
+          cp -rv /usr/lib64/webkitgtk-6.0/*   "$ROOT/usr/lib64/webkitgtk-6.0/" || true
+
+          # Fetch appimagetool and extract it (avoids FUSE requirement)
+          curl -fsSL -o "$WORK/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$WORK/appimagetool"
+
+          mkdir -p "$WORK/tool"
+          cd "$WORK/tool"
+          "$WORK/appimagetool" --appimage-extract
+          AIT="$WORK/tool/squashfs-root/AppRun"
+
+          # Repack, overwriting the original AppImage
+          OUTPUT="$APPIMAGE_DIR/$APPIMAGE_NAME"
+          rm -f "$OUTPUT"
+          ARCH=x86_64 "$AIT" "$ROOT" "$OUTPUT"
+
+          echo "Repacked AppImage: $OUTPUT"
+          ls -lah "$APPIMAGE_DIR"
 
       # --- Upload desktop artifacts (required files → fail if missing) ---
       - name: Upload desktop artifacts
@@ -204,7 +232,7 @@ jobs:
           retention-days: 7
 
   # ------------------------------------------------------------------
-  # Android: AAB (Play Store) + APK (sideload) — now on macOS
+  # Android: AAB (Play Store) + APK (sideload) — on macOS
   # ------------------------------------------------------------------
   build-android:
     runs-on: macos-latest
