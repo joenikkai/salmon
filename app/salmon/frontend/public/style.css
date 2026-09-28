@@ -12,8 +12,11 @@
     inset: 0;
     z-index: -1;
     background-image:
-    repeating-linear-gradient(to left,var(--salmon-accent-2) 1px,transparent 2px,transparent var(--background-pattern-spacing)),
-    repeating-linear-gradient(to bottom,var(--salmon-accent-2) 1px,transparent 2px,transparent var(--background-pattern-spacing));
+    linear-gradient(to left,var(--salmon-accent-2) 1px, transparent 2px, transparent var(--background-pattern-spacing)),
+    linear-gradient(to bottom,var(--salmon-accent-2) 1px, transparent 2px, transparent var(--background-pattern-spacing));
+    background-size: var(--background-pattern-spacing) var(--background-pattern-spacing);
+    background-repeat: repeat;
+    background-position: 0 0;
 }
 
 
