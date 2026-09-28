@@ -1,378 +1,248 @@
-name: Release App
+name: Release Wails App
 
 on:
   push:
-    tags:
-      - 'app-v*'
+    tags: ['app-v*']
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
-  WAILS_VERSION: "v3.0.0-beta.20"   # pinned for reproducible builds
+
+# ---------- shared shim for the native runners ----------
+# (Windows/macOS/iOS jobs still need it; the Docker images bake it in.)
 
 jobs:
-  # ------------------------------------------------------------------
-  # Desktop builds: Windows, Linux (Fedora), macOS
-  # ------------------------------------------------------------------
-  build-desktop:
+  # ============================================================
+  # Windows — must be native (NSIS + Windows PE toolchain)
+  # ============================================================
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache-dependency-path: app/salmon/go.sum }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9, run_install: false }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
+      - name: npm → pnpm shim
+        shell: pwsh
+        run: |
+          $d = "$env:RUNNER_TEMP\shim"
+          New-Item -ItemType Directory -Force -Path $d | Out-Null
+          Set-Content -Path "$d\npm.cmd" -Value "@echo off`r`npnpm %*"
+          Add-Content -Path $env:GITHUB_PATH -Value $d
+      - name: Install Wails v3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files (x86)\NSIS"
+      - name: Build NSIS installer
+        working-directory: app/salmon
+        run: wails3 task windows:create:nsis:installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salmon-windows-amd64
+          path: app/salmon/bin/*.exe
+          if-no-files-found: warn
+
+  # ============================================================
+  # macOS + iOS — must be native (Xcode)
+  # ============================================================
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache-dependency-path: app/salmon/go.sum }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9, run_install: false }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+          cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
+      - name: npm → pnpm shim
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          printf '#!/bin/sh\nexec pnpm "$@"\n' > "$HOME/.local/bin/npm"
+          chmod +x "$HOME/.local/bin/npm"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - name: Build macOS universal .app
+        working-directory: app/salmon
+        run: wails3 task darwin:package:universal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salmon-darwin-universal
+          path: app/salmon/bin/*.app
+          if-no-files-found: warn
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache-dependency-path: app/salmon/go.sum }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9, run_install: false }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+          cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
+      - name: npm → pnpm shim
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          printf '#!/bin/sh\nexec pnpm "$@"\n' > "$HOME/.local/bin/npm"
+          chmod +x "$HOME/.local/bin/npm"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - name: Build iOS .app
+        working-directory: app/salmon
+        run: wails3 task ios:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salmon-ios
+          path: app/salmon/bin/*.app
+          if-no-files-found: warn
+
+  # ============================================================
+  # Linux — Docker per distro (Ubuntu for deb/appimage, Fedora for rpm)
+  # ============================================================
+  build-linux:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            platform: windows
-            artifact_name: windows-installer
-          - os: macos-latest
-            platform: darwin
-            artifact_name: macos-app
-          - container: fedora:44
-            platform: linux
-            artifact_name: linux-packages
-
-    runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
-    container: ${{ matrix.container || null }}
-
+          - { distro: ubuntu, label: linux-amd64-deb,
+              cmd: 'linux:create:deb',      path: 'app/salmon/bin/*.deb' }
+          - { distro: ubuntu, label: linux-amd64-appimage,
+              cmd: 'linux:create:appimage', path: 'app/salmon/bin/*.AppImage' }
+          - { distro: fedora, label: linux-amd64-rpm,
+              cmd: 'linux:create:rpm',      path: 'app/salmon/bin/*.rpm' }
     steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
 
-      # Install Git in container BEFORE checkout
-      - name: Install Git (Fedora Linux only)
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: dnf install -y git
+      - name: Verify dockerfiles
+        run: |
+          ls -la app/salmon/build/docker
+          head -n 20 app/salmon/docker/build/Dockerfile.${{ matrix.distro }}
 
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Build builder image (${{ matrix.distro }})
+        uses: docker/build-push-action@v6
         with:
-          submodules: recursive
+          context: app/salmon
+          file: app/salmon/build/docker/Dockerfile.${{ matrix.distro }}
+          load: true
+          tags: salmon-builder:${{ matrix.distro }}
+          cache-from: type=gha,scope=${{ matrix.distro }}
+          cache-to:   type=gha,mode=max,scope=${{ matrix.distro }}
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Build ${{ matrix.label }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/src" \
+            -w /src/app/salmon \
+            salmon-builder:${{ matrix.distro }} \
+            wails3 task ${{ matrix.cmd }}
+
+      - name: Fix artifact ownership
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" app/salmon/bin || true
+
+      - uses: actions/upload-artifact@v4
         with:
-          go-version: '1.27'
-          cache-dependency-path: app/salmon/go.sum
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      # --- Linux (Fedora): Install system dependencies ---
-      - name: Install system dependencies (Fedora Linux)
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          dnf install -y \
-            gcc \
-            gcc-c++ \
-            pkgconf-pkg-config \
-            gtk4-devel \
-            webkitgtk6.0-devel \
-            libayatana-appindicator-gtk3-devel \
-            rpm-build \
-            fakeroot \
-            xorg-x11-server-Xvfb
-
-          pkg-config --modversion gtk4
-          pkg-config --modversion webkitgtk-6.0
-
-      # --- Windows: Install NSIS ---
-      - name: Install NSIS (Windows only)
-        if: matrix.platform == 'windows'
-        shell: powershell
-        run: |
-          choco install nsis -y --no-progress
-          "C:\Program Files (x86)\NSIS\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          & "C:\Program Files (x86)\NSIS\Bin\makensis.exe" /VERSION
-
-      - name: Verify NSIS (Windows only)
-        if: matrix.platform == 'windows'
-        shell: powershell
-        run: |
-          Get-Command makensis
-          makensis /VERSION
-
-      # --- Common build steps (all platforms) ---
-      - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
-
-      - name: Verify Wails version
-        run: wails3 version
-
-      - name: Install frontend dependencies
-        working-directory: app/salmon/frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        working-directory: app/salmon/frontend
-        run: pnpm run build
-
-      - name: Build & package desktop app
-        working-directory: app/salmon
-        run: |
-          set -euxo pipefail
-          # Create a writable XDG_RUNTIME_DIR for WebKit/Wayland socket needs
-          export XDG_RUNTIME_DIR="${RUNNER_TEMP}/xdg-runtime"
-          mkdir -p "$XDG_RUNTIME_DIR"
-          chmod 700 "$XDG_RUNTIME_DIR"
-
-          # Run wails3 package under Xvfb so WebKit can initialize
-          # Optional: set WEBKIT_DISABLE_SANDBOX=1 if sandbox/seccomp blocks WebKitWebProcess in container
-          export WEBKIT_DISABLE_SANDBOX=1 || true
-
-          xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
-            wails3 package
-        env:
-          CGO_ENABLED: 1
-
-      - name: Package macOS app as zip
-        if: matrix.platform == 'darwin'
-        working-directory: app/salmon/bin
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          APP_BUNDLE=$(find . -maxdepth 1 -name "*.app" -type d | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "::error::No .app bundle found in $(pwd)"
-            ls -la
-            exit 1
-          fi
-
-          APP_NAME=$(basename "$APP_BUNDLE" .app)
-          echo "Zipping $APP_BUNDLE -> ${APP_NAME}.zip"
-
-          # ditto preserves code signature, xattrs and resource forks
-          ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "${APP_NAME}.zip"
-
-          ls -la
-
-      # --- Linux: Bundle WebKit libraries into AppImage ---
-      - name: Bundle WebKit libraries in AppImage (Fedora Linux only)
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          # Find the AppDir that wails3 created
-          APPDIR=$(find app/salmon/bin -maxdepth 2 -name "*.AppDir" -type d | head -1)
-
-          if [ -z "$APPDIR" ]; then
-            echo "AppDir not found, attempting to create structure..."
-            APPDIR="app/salmon/bin/Salmon.AppDir"
-            mkdir -p "$APPDIR/usr/lib64"
-          fi
-
-          echo "Using AppDir: $APPDIR"
-
-          # Copy runtime WebKit libraries (Fedora uses lib64)
-          mkdir -p "$APPDIR/usr/lib64"
-
-          # Copy main WebKit libraries
-          cp -v /usr/lib64/libwebkitgtk-6.0.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libgtk-4.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libgdk-4.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libglib-2.0.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libcairo.so* "$APPDIR/usr/lib64/" || true
-          cp -v /usr/lib64/libpango*.so* "$APPDIR/usr/lib64/" || true
-
-          # Copy WebKit subprocess (critical for WebKitGTK to work)
-          mkdir -p "$APPDIR/usr/lib64/webkitgtk-6.0"
-          cp -rv /usr/lib64/webkitgtk-6.0/* "$APPDIR/usr/lib64/webkitgtk-6.0/" || true
-
-          echo "Bundling complete"
-          ls -la "$APPDIR/usr/lib64/" | head -20
-
-      - name: Upload desktop artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            app/salmon/bin/*
+          name: salmon-${{ matrix.label }}
+          path: ${{ matrix.path }}
           if-no-files-found: warn
-          retention-days: 7
 
-  # ------------------------------------------------------------------
-  # Android: AAB (Play Store) + APK (sideload) - macOS
-  # ------------------------------------------------------------------
+  # ============================================================
+  # Android — native ubuntu (Android SDK action is the least painful path)
+  # ============================================================
   build-android:
-    runs-on: macos-latest
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache-dependency-path: app/salmon/go.sum }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9, run_install: false }
+      - uses: actions/setup-node@v4
         with:
-          submodules: recursive
+          node-version: '24'
+          cache: 'pnpm'
+          cache-dependency-path: app/salmon/frontend/pnpm-lock.yaml
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
+      - uses: android-actions/setup-android@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> "$GITHUB_ENV"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Java (JDK 21)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;26.3.11579264'
-
-      - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
-
-      - name: Verify Wails version
-        run: wails3 version
-
-      - name: Install frontend dependencies
-        working-directory: app/salmon/frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        working-directory: app/salmon/frontend
-        run: pnpm run build
-
-      - name: Build Android APK (fat)
-        working-directory: app/salmon
-        run: wails3 task android:package:fat
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-
-      - name: Build Android AAB (fat)
+      - name: npm → pnpm shim
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          printf '#!/bin/sh\nexec pnpm "$@"\n' > "$HOME/.local/bin/npm"
+          chmod +x "$HOME/.local/bin/npm"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - name: Build Android AAB
         working-directory: app/salmon
         run: wails3 task android:bundle:fat
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: android-packages
-          path: |
-            app/salmon/bin/*.apk
-            app/salmon/bin/*.aab
-          retention-days: 7
+          name: salmon-android
+          path: app/salmon/bin/*.aab
+          if-no-files-found: warn
 
-  # ------------------------------------------------------------------
-  # iOS: .ipa
-  # ------------------------------------------------------------------
-  build-ios:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
-
-      - name: Verify Wails version
-        run: wails3 version
-
-      - name: Install frontend dependencies
-        working-directory: app/salmon/frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        working-directory: app/salmon/frontend
-        run: pnpm run build
-
-      - name: Decode provisioning profile
-        run: |
-          mkdir -p $RUNNER_TEMP/profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode \
-            > $RUNNER_TEMP/profiles/app.mobileprovision
-
-      - name: Build iOS IPA
-        working-directory: app/salmon
-        run: |
-          wails3 task ios:package:ipa \
-            IOS_PLATFORM=device \
-            CODESIGN_IDENTITY="${{ secrets.IOS_CODESIGN_IDENTITY }}" \
-            PROVISIONING_PROFILE="$RUNNER_TEMP/profiles/app.mobileprovision"
-        env:
-          CGO_ENABLED: 1
-
-      - name: Upload iOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa
-          path: app/salmon/bin/*.ipa
-          retention-days: 7
-
-  # ------------------------------------------------------------------
+  # ============================================================
   # Release
-  # ------------------------------------------------------------------
+  # ============================================================
   release:
-    needs: [build-desktop, build-android, build-ios]
-    runs-on: ubuntu-24.04
-    if: always() && (needs.build-desktop.result == 'success' || needs.build-android.result == 'success' || needs.build-ios.result == 'success')
-
+    needs: [build-windows, build-macos, build-ios, build-linux, build-android]
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/app-v') }}
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          for d in artifacts/*/; do
+            label=$(basename "$d")
+            for f in "$d"*; do
+              [ -e "$f" ] || continue
+              if [ -d "$f" ]; then
+                ( cd "$(dirname "$f")" && zip -qr - "$(basename "$f")" ) \
+                  > "release/${label}-$(basename "$f").zip"
+              else
+                cp "$f" "$f"
+              fi
+            done
+          done
+      - uses: softprops/action-gh-release@v2
         with:
-          path: artifacts
-
-      - name: Display collected files
-        run: find artifacts -type f | sort
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: release/*
           generate_release_notes: true
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/*.app
-            artifacts/**/*.dmg
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
-            artifacts/**/*.rpm
-            artifacts/**/*.apk
-            artifacts/**/*.aab
-            artifacts/**/*.ipa
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.ref_name }}
