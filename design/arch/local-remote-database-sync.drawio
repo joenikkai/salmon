@@ -1,0 +1,90 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="ZFvdVb-1G93h0CVPYGLY">
+    <mxGraphModel dx="4385" dy="2095" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="HAETX7T_vKK2RWEPH64s-4" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_server.svg;" value="" vertex="1">
+          <mxGeometry height="400" width="328" x="870" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-5" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="80" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-6" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="80" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-23" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;" target="HAETX7T_vKK2RWEPH64s-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-7" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="125" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-20" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="HAETX7T_vKK2RWEPH64s-14">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-8" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="125" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-9" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="170" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-24" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;" target="HAETX7T_vKK2RWEPH64s-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-10" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/database_cube.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="45" x="170" y="525" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-29" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;shape=pipe;curved=1;" target="HAETX7T_vKK2RWEPH64s-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-13" parent="1" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Cache_Redis_Product.svg;" value="" vertex="1">
+          <mxGeometry height="75" width="89.29" x="410" y="402.29999999999995" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-30" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;shape=link;" target="HAETX7T_vKK2RWEPH64s-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-14" parent="1" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;fillColor=#FF6A00;strokeColor=none;shape=mxgraph.alibaba_cloud.cdn_content_distribution_network;" value="" vertex="1">
+          <mxGeometry height="42.3" width="51" x="270" y="184" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-25" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;shape=link;curved=1;" target="HAETX7T_vKK2RWEPH64s-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-15" parent="1" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;fillColor=#FF6A00;strokeColor=none;shape=mxgraph.alibaba_cloud.cdn_content_distribution_network;" value="" vertex="1">
+          <mxGeometry height="42.3" width="51" x="290" y="402.3" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-28" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;shape=pipe;curved=1;" target="HAETX7T_vKK2RWEPH64s-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-17" parent="1" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Cache_Redis_Product.svg;" value="" vertex="1">
+          <mxGeometry height="75" width="89.29" x="440" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-18" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;" target="HAETX7T_vKK2RWEPH64s-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-21" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.392;entryY=0.142;entryDx=0;entryDy=0;entryPerimeter=0;curved=1;" target="HAETX7T_vKK2RWEPH64s-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-22" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.486;entryY=0.308;entryDx=0;entryDy=0;entryPerimeter=0;curved=1;" target="HAETX7T_vKK2RWEPH64s-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-31" edge="1" parent="1" source="HAETX7T_vKK2RWEPH64s-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;shape=pipe;curved=1;" target="HAETX7T_vKK2RWEPH64s-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-27" parent="1" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.nat_gateway;" value="" vertex="1">
+          <mxGeometry height="78" width="78" x="621" y="242.5" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-32" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 45px;&quot;&gt;Local SQLITE instances&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="524.65" x="-410" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-34" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 45px;&quot;&gt;Remote PostGRESQL instances&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="524.65" x="1360" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="HAETX7T_vKK2RWEPH64s-35" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 45px;&quot;&gt;REST API(v0-v3) /&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 45px;&quot;&gt;GRPC(v4+)&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="524.65" x="330" y="620" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
